@@ -1,3 +1,3 @@
-# nexa-switch-homebridge-plugin
+# homebridge-nexa-switch-platform
 
-This is a plugin for [Homebridge](https://www.npmjs.com/package/homebridge) for controlling remote controlled power switches manufactured by Nexa.
+This is a [Homebridge](https://www.npmjs.com/package/homebridge) plugin for controlling remote controlled power switches manufactured by Nexa.

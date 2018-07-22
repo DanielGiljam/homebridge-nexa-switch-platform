@@ -1,4 +1,4 @@
-# Node modules
+# Node & NPM
 node_modules
 package-lock.json
 
@@ -11,6 +11,3 @@ package-lock.json
 Icon?
 ehthumbs.db
 Thumbs.db
-
-# CSS pre-processor/SASS/SCSS
-.sass-cache
