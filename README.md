@@ -1,0 +1,1 @@
+# nexa-switch-homebridge-plugin
