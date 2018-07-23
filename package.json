@@ -23,11 +23,8 @@
     "node": ">=0.12.0",
     "homebridge": ">=0.2.0"
   },
-  "dependencies": {
-    "homebridge": "^0.4.44",
-    "request": "^2.87.0"
-  },
   "devDependencies": {
-    "hap-nodejs": "^0.4.47"
+    "hap-nodejs": "^0.4.47",
+    "homebridge": "^0.4.44"
   }
 }
