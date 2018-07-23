@@ -4,7 +4,7 @@
   "description": "This is a Homebridge plugin for controlling remote controlled power switches manufactured by Nexa.",
   "main": "index.js",
   "scripts": {
-    "test": "DEBUG=* .node_modules/homebridge/bin/homebridge -D -U ./.homebridge -P ./"
+    "test": "DEBUG=* ./node_modules/homebridge/bin/homebridge -D -U ./.homebridge -P ./"
   },
   "repository": {
     "type": "git",
