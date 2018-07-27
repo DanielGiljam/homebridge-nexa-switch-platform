@@ -51,32 +51,11 @@ function NexaSwitchPlatform(log, config, api) {
 
 NexaSwitchPlatform.prototype.addAccessory = (accessoryInformation) => {
 
-    if (!accessoryInformation || !accessoryInformation.name) {
-        throw new Error(
-            "Could not add accessory. Accessory name ('-.name') needs to be provided " +
-            "within the 'accessoryInformation' parameter in the 'addAccessory' prototype function.");
-    }
-
     const accessory = new PlatformAccessory(accessoryInformation.name, UUIDGen.generate(accessoryInformation.name));
 
     accessory.context.name = accessoryInformation.name;
-
-    if (!accessoryInformation.manufacturer) this.log.warn(
-        "Accessory manufacturer ('-.manufacturer') wasn't provided within " +
-        "the 'accessoryInformation' parameter " +
-        "in the 'addAccessory' prototype function.");
-    if (!accessoryInformation.model) this.log.warn(
-        "Accessory model ('-.model') wasn't provided within " +
-        "the 'accessoryInformation' parameter " +
-        "in the 'addAccessory' prototype function.");
-    if (!accessoryInformation.serialNumber) this.log.warn(
-        "Accessory serial number ('-.serialNumber') wasn't provided within " +
-        "the 'accessoryInformation' parameter " +
-        "in the 'addAccessory' prototype function.");
-    else accessoryInformation.serialNumber = "000-000-000";
-
-    accessory.context.manufacturer = accessoryInformation.manufacturer || "Unknown";
-    accessory.context.model = accessoryInformation.model || "Unknown";
+    accessory.context.manufacturer = accessoryInformation.manufacturer;
+    accessory.context.model = accessoryInformation.model;
 
     accessory.getService(Service.AccessoryInformation)
         .setCharacteristic(Characteristic.Manufacturer, accessoryInformation.manufacturer)
@@ -87,6 +66,14 @@ NexaSwitchPlatform.prototype.addAccessory = (accessoryInformation) => {
     switchService.getCharacteristic(Characteristic.On)
         .on("get", () => {}) // TODO: write an actual function here
         .on("set", () => {}) // TODO: write an actual function here
+
+};
+
+NexaSwitchPlatform.prototype.getSwitchOnCharacteristic = (next) => {
+
+};
+
+NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = (on, next) => {
 
 };
 
