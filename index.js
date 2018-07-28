@@ -1,8 +1,11 @@
-'use strict';
+"use strict";
 
+const http = require("http");
 let PlatformAccessory, Characteristic, Service, UUIDGen;
 
-module.exports = (homebridge) => {
+const controller = require("./controller");
+
+module.exports = homebridge => {
 
     PlatformAccessory = homebridge.platformAccessory;
 
@@ -16,40 +19,44 @@ module.exports = (homebridge) => {
 
 function NexaSwitchPlatform(log, config, api) {
 
-    if (log) this.log = log;
-    else throw new Error(
-        "Log parameter neglected when the NexaSwitchPlatform constructor was called!");
+    if (!log) throw new Error("Log parameter neglected when the NexaSwitchPlatform constructor was called!");
 
-    this.log = "Launching...";
-
-    if (config && config.controllerAddress) {
-        this.config = config;
-    } else if (config) {
-        this.config = {"controllerAddress": "localhost:51827"};
-        this.log.warn(
+    if (!config.controllerPort && config) {
+        config.controllerPort = 51927;
+        log.warn(
             "Controller address could not be read from Homebridge configuration " +
             "–> defaults to 'localhost:51827'.");
     } else {
-        this.config = {"controllerAddress": "localhost:51827"};
-        this.log.warn(
+        config = { controllerPort: 51927 };
+        log.warn(
             "Could not read Homebridge configuration. " +
             "Controller address defaults to 'localhost:51827'.");
     }
 
-    if (api) this.api = api;
-    else throw new Error(
+    if (!api) throw new Error(
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
 
-    // TODO: insert controller server startup here and fetch number of accessories
+    controller(log, config.controllerPort);
 
-    this.api.on("didFinishLaunching", function() {
+    const reqOptions = {
+        hostname: "localhost",
+        port: config.controllerPort,
+        path: "/config",
+        method: "GET"
+    };
+
+    http.request(reqOptions, (res) => {
+
+    });
+
+    api.on("didFinishLaunching", function() {
         this.log("Finished launching...");
     }.bind(this));
 
 }
 
-NexaSwitchPlatform.prototype.addAccessory = (accessoryInformation) => {
+NexaSwitchPlatform.prototype.addAccessory = accessoryInformation => {
 
     const accessory = new PlatformAccessory(accessoryInformation.name, UUIDGen.generate(accessoryInformation.name));
 
@@ -64,17 +71,17 @@ NexaSwitchPlatform.prototype.addAccessory = (accessoryInformation) => {
 
     const switchService = accessory.addService(Service.Switch, "Power Switch");
     switchService.getCharacteristic(Characteristic.On)
-        .on("get", () => {}) // TODO: write an actual function here
-        .on("set", () => {}) // TODO: write an actual function here
+        .on("get", this.getSwitchOnCharacteristic.bind(this))
+        .on("set", this.setSwitchOnCharacteristic.bind(this))
 
 };
 
 NexaSwitchPlatform.prototype.getSwitchOnCharacteristic = (next) => {
-
+    // TODO: write an actual function here
 };
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = (on, next) => {
-
+    // TODO: write an actual function here
 };
 
 
