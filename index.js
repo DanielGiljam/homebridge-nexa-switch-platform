@@ -23,12 +23,12 @@ function NexaSwitchPlatform(log, config, api) {
 
     if (!config.controllerPort && config) {
         config.controllerPort = 51927;
-        log.warn(
+        log(
             "Controller address could not be read from Homebridge configuration " +
             "–> defaults to 'localhost:51827'.");
     } else {
         config = { controllerPort: 51927 };
-        log.warn(
+        log(
             "Could not read Homebridge configuration. " +
             "Controller address defaults to 'localhost:51827'.");
     }
@@ -37,7 +37,7 @@ function NexaSwitchPlatform(log, config, api) {
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
 
-    controller(log, config.controllerPort);
+    controller(config.controllerPort);
 
     const reqOptions = {
         hostname: "localhost",
