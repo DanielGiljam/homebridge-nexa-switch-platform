@@ -4,37 +4,43 @@ const http = require('http');
 const querystring = require('querystring');
 
 module.exports = (log, port) => {
-    new Controller(message => { log('Controller Server: ' + message) }, port);
+    new Controller(message => { log('[Controller Server] ' + message) }, port);
 };
 
 function Controller(log, port) {
-    const server = http.createServer(this.RequestHandler);
-    server.listen(port, () => {
-        log(`Listening on port ${port}...`);
+    this.log = log;
+    this.server = http.createServer((req, res) => {
+        switch (req.method) {
+            case 'GET':
+                this.GetRequestHandler(req, res);
+                break;
+            case 'POST':
+                this.PostRequestHandler(req, res);
+                break;
+            default:
+                res.writeHead(406);
+                res.end();
+                break;
+        }
+    });
+    this.server.listen(port, () => {
+        this.log(`Listening on port ${port}...`);
     });
 }
 
-Controller.prototype.RequestHandler = (req, res) => {
-    switch (req.method) {
-        case 'GET':
-            this.GetRequestHandler(req, res);
-            break;
-        case 'POST':
-            this.PostRequestHandler(req, res);
-            break;
-        default:
-            res.writeHead(406);
-            res.end();
-            break;
-    }
-};
-
-Controller.prototype.GetRequestHandler = (req, res) => {
+Controller.prototype.GetRequestHandler = function(req, res) {
     this.log(`Received GET request: ${req.url}`);
     switch (req.url) {
         case '/config':
-            const resObject = JSON.stringify({ statusArray: ['on'] }); // TODO: replace example resObject with a real one
-            this.log('Responding with configuration object');
+            const resObject = JSON.stringify({ accessoryInformation: [{
+                    name: "Switch",
+                    manufacturer: "NEXA",
+                    model: "PER-1500",
+                    serialNumber: "481-148-592",
+                    state: "false"
+                }] }); // TODO: replace example resObject with a real one
+            // this.log(`Responding with configuration object: ${resObject}`);
+            this.log('Responding with configuration object...');
             res.write(resObject);
             break;
         default:
@@ -45,7 +51,7 @@ Controller.prototype.GetRequestHandler = (req, res) => {
     res.end();
 };
 
-Controller.prototype.PostRequestHandler = (req, res) => {
+Controller.prototype.PostRequestHandler = function(req, res) {
     this.log('Received POST request');
     let reqData = '';
     req.on('data', chunk => {
