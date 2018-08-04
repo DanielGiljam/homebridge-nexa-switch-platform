@@ -3,46 +3,50 @@
 const http = require('http');
 const querystring = require('querystring');
 
-module.exports = (port) => {
-    const server = http.createServer(RequestHandler);
-    server.listen(port, () => {
-        console.log(`Listening on port ${port}...`);
-    });
+module.exports = (log, port) => {
+    new Controller(message => { log('Controller Server: ' + message) }, port);
 };
 
-function RequestHandler(req, res) {
+function Controller(log, port) {
+    const server = http.createServer(this.RequestHandler);
+    server.listen(port, () => {
+        log(`Listening on port ${port}...`);
+    });
+}
+
+Controller.prototype.RequestHandler = (req, res) => {
     switch (req.method) {
         case 'GET':
-            GetRequestHandler(req, res);
+            this.GetRequestHandler(req, res);
             break;
         case 'POST':
-            PostRequestHandler(req, res);
+            this.PostRequestHandler(req, res);
             break;
         default:
             res.writeHead(406);
             res.end();
             break;
     }
-}
+};
 
-function GetRequestHandler(req, res) {
-    console.log(`Received GET request: ${req.url}`);
+Controller.prototype.GetRequestHandler = (req, res) => {
+    this.log(`Received GET request: ${req.url}`);
     switch (req.url) {
         case '/config':
             const resObject = JSON.stringify({ statusArray: ['on'] }); // TODO: replace example resObject with a real one
-            console.log('Responding with configuration object');
+            this.log('Responding with configuration object');
             res.write(resObject);
             break;
         default:
-            console.warn('No response found for received GET request');
+            this.log('No response found for received GET request');
             res.writeHead(406);
             break;
     }
     res.end();
-}
+};
 
-function PostRequestHandler(req, res) {
-    console.log('Received POST request');
+Controller.prototype.PostRequestHandler = (req, res) => {
+    this.log('Received POST request');
     let reqData = '';
     req.on('data', chunk => {
         reqData += chunk.toString();
@@ -51,16 +55,16 @@ function PostRequestHandler(req, res) {
         const postData = querystring.parse(reqData);
         if (postData.target) {
             if (postData.state) {
-                console.log(`Target ${postData.target} was requested to alter into state ${postData.state}`);
+                this.log(`Target ${postData.target} was requested to alter into state ${postData.state}`);
                 res.write(`Target ${postData.target} was requested to alter into state ${postData.state}`);
             } else {
-                console.warn('Incomplete request: a target state was not provided');
+                this.log('Incomplete request: a target state was not provided');
                 res.writeHead(406, 'Incomplete request: target state was not provided');
             }
         } else {
-            console.warn('Incomplete request: a target was not provided');
+            this.log('Incomplete request: a target was not provided');
             res.writeHead(406, 'Incomplete request: a target was not provided');
         }
         res.end();
     });
-}
+};
