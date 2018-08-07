@@ -142,7 +142,7 @@ NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
     for (let index in this.accessories) {
         if (this.accessories[index].UUID === uuid) {
-            this.accessoriesToBeUnregistered.remove(index); // TODO: check that method "remove()" actually
+            this.accessoriesToBeUnregistered.splice(index); // TODO: check that method "remove()" actually
             // exists
             return true;
         }
