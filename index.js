@@ -1,6 +1,7 @@
 "use strict";
 
 const http = require("http");
+const querystring = require("querystring");
 let PlatformAccessory, Characteristic, Service, UUIDGen, Logger;
 
 const controller = require("./controller");
@@ -21,19 +22,22 @@ module.exports = homebridge => {
 
 function NexaSwitchPlatform(log, config, api) {
 
-    if (!log) throw new Error("Log parameter neglected when the NexaSwitchPlatform constructor was called!");
+    if (log == null) throw new Error("Log parameter neglected when the NexaSwitchPlatform constructor was called!");
     else this.log = log;
 
-    if (config && this.validateConfig(config)) {
+    if (config != null && this.validateConfig(config)) {
         this.config = config;
     } else {
-        this.config = { controllerPort: 51927, emitterId: '31415', accessoryInformation: [] };
+        this.config = { platform: 'NexaSwitchPlatform', name: 'NEXA Switch Platform', controllerPort: 51927, emitterId: '31415', accessoryInformation: [] };
         this.log(
             "Could not read Homebridge configuration. " +
-            "Values default to controller port: '51827', emitter id: '31415' and 0 accessories.");
+            "Values default to platform: 'NexaSwitchPlatform', " +
+            "name: 'NEXA Switch Platform', " +
+            "controller port: '51827', " +
+            "emitter id: '31415' and 0 accessories.");
     }
 
-    if (!api) throw new Error(
+    if (api == null) throw new Error(
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
 
@@ -87,9 +91,8 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
         .setCharacteristic(Characteristic.Model, accessoryInformation.model)
         .setCharacteristic(Characteristic.SerialNumber, accessoryInformation.serialNumber);
 
-    const switchService = accessory.addService(Service.Switch, "Power Switch");
+    const switchService = accessory.addService(Service.Switch, 'Power Switch');
     switchService.getCharacteristic(Characteristic.On)
-        .on("get", this.getSwitchOnCharacteristic.bind(this))
         .on("set", this.setSwitchOnCharacteristic.bind(this));
 
     this.accessoriesToBeRegistered.push(accessory);
@@ -100,16 +103,59 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
     this.accessories.push(accessory);
 };
 
-NexaSwitchPlatform.prototype.getSwitchOnCharacteristic = function(next) {
-    // TODO: write an actual function here
-};
-
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
-    // TODO: write an actual function here
+    const reqContent = querystring.stringify({
+        state: on
+    });
+    const reqOptions = {
+        hostname: 'localhost',
+        port: this.config.controllerPort,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(reqContent)
+        }
+    };
+    const req = http.request(reqOptions, res => {
+        this.log(`Response status code: ${res.statusCode} –> ${res.statusMessage}\n`);
+        let data = '';
+        res.on('data', chunk => {
+            data += chunk.toString();
+        });
+        res.on('end', () => {
+            let data = querystring.parse(data);
+            if (data.target) {
+                if (data.state) {
+                    this.log(`Target ${data.target} was requested to alter into state ${data.state}`);
+                } else {
+                    this.log('Incomplete request: a target state was not provided');
+                }
+            } else {
+                this.log('Incomplete request: a target was not provided');
+            }
+        });
+    });
+    req.end();
 };
 
 NexaSwitchPlatform.prototype.validateConfig = function(config) {
-    return true; // TODO: actually make this function
+    const platformSet = config.platform != null && typeof config.platform === 'string';
+    const nameSet = config.name != null && typeof config.name === 'string';
+    const controllerPortSet = config.controllerPort != null && typeof config.controllerPort === 'number' && config.controllerPort >= 1 && config.controllerPort <= 65535;
+    const emitterIdSet = config.emitterId != null && typeof config.emitterId === 'number' && config.emitterId >= 1 && config.emitterId <= 67108862;
+    let accessoryInformationSet = config.accessoryInformation != null;
+    if (accessoryInformationSet) {
+        for (let index in config.accessoryInformation) {
+            const accessoryInformation = config.accessoryInformation[index];
+            const nameSet = accessoryInformation.name != null && typeof accessoryInformation.name === 'string';
+            const manufacturerSet = accessoryInformation.manufacturer != null && typeof accessoryInformation.manufacturer === 'string';
+            const modelSet = accessoryInformation.model != null && typeof accessoryInformation.model === 'string';
+            const serialNumberSet = accessoryInformation.serialNumber != null && typeof accessoryInformation.serialNumber === 'string';
+            accessoryInformationSet = nameSet && manufacturerSet && modelSet && serialNumberSet;
+            if (!accessoryInformationSet) break;
+        }
+    }
+    return platformSet && nameSet && controllerPortSet && emitterIdSet && accessoryInformationSet;
 };
 
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {

@@ -13,13 +13,13 @@
 			"emitterId": "31415",
 			"accessoryInformation": [
 				{
-					"name": "Switch",
+					"name": "Switch 1",
 					"manufacturer": "NEXA",
 					"model": "PER-1500",
 					"serialNumber": "481-148-592"
 				},
 				{
-					"name": "Switch",
+					"name": "Switch 2",
 					"manufacturer": "NEXA",
 					"model": "PER-1500",
 					"serialNumber": "481-148-593"
