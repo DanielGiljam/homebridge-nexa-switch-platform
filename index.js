@@ -105,6 +105,7 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
     const reqContent = querystring.stringify({
+        target: '?', // TODO: figure out how to get target into here
         state: on
     });
     const reqOptions = {
@@ -133,6 +134,7 @@ NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
             } else {
                 this.log('Incomplete request: a target was not provided');
             }
+            return next();
         });
     });
     req.end();
