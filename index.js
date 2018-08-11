@@ -13,7 +13,7 @@ module.exports = homebridge => {
     Service = homebridge.hap.Service;
 
     UUIDGen = homebridge.hap.uuid;
-    Logger = homebridge.Logger
+    Logger = homebridge.Logger;
 
     homebridge.registerPlatform("homebridge-nexa-switch-platform", "NexaSwitchPlatform", NexaSwitchPlatform, true);
 
@@ -24,20 +24,13 @@ function NexaSwitchPlatform(log, config, api) {
     if (!log) throw new Error("Log parameter neglected when the NexaSwitchPlatform constructor was called!");
     else this.log = log;
 
-    if (config.controllerHost && config.controllerPort && config) {
+    if (config && this.validateConfig(config)) {
         this.config = config;
-    } else if ((!config.controllerHost || !config.controllerPort) && config) {
-        this.config = {};
-        this.config.controllerHost = "localhost";
-        this.config.controllerPort = 51927;
-        this.log(
-            "Controller address could not be read from Homebridge configuration " +
-            "–> defaults to 'localhost:51827'.");
     } else {
-        this.config = { controllerHost: 'localhost', controllerPort: 51927 };
+        this.config = { controllerPort: 51927, emitterId: '31415', accessoryInformation: [] };
         this.log(
             "Could not read Homebridge configuration. " +
-            "Controller address defaults to 'localhost:51827'.");
+            "Values default to controller port: '51827', emitter id: '31415' and 0 accessories.");
     }
 
     if (!api) throw new Error(
@@ -50,47 +43,23 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessoriesToBeRegistered = [];
     this.accessoriesToBeUnregistered = [];
 
-    const reqOptions = {
-        hostname: "localhost",
-        port: this.config.controllerPort,
-        path: "/config",
-        method: "GET"
-    };
-
-    const req = http.request(reqOptions, res => {
-        this.log(`Requesting configuration from controller, ` +
-            `response status code: ${res.statusCode} –> ${res.statusMessage}`);
-        let data = '';
-        res.on('data', chunk => {
-            data += chunk.toString();
-        });
-        res.on('end', () => {
-            // this.log(`Received data: ${data}`);
-            data = JSON.parse(data);
-            this.config.accessoryInformation = data.accessoryInformation;
-            this.accessoriesToBeUnregistered = this.accessories;
-            this.log(`Received configuration object, ${this.config.accessoryInformation.length} accessories configured`);
-            for (let index in this.config.accessoryInformation) {
-                this.addAccessory(this.config.accessoryInformation[index]);
-            }
-            if (this.accessoriesToBeRegistered.length !== 0) {
-                api.registerPlatformAccessories(
-                    "homebridge-nexa-switch-platform",
-                    "NexaSwitchPlatform",
-                    this.accessoriesToBeRegistered);
-            }
-            if (this.accessoriesToBeUnregistered.length !== 0) {
-                api.unregisterPlatformAccessories(
-                    "homebridge-nexa-switch-platform",
-                    "NexaSwitchPlatform",
-                    this.accessoriesToBeUnregistered);
-            }
-        });
-    });
-
-    req.end();
-
     api.on("didFinishLaunching", () => {
+        this.config.accessoriesToBeUnregistered = this.accessories;
+        for (let index in this.config.accessoryInformation) {
+            this.addAccessory(this.config.accessoryInformation[index]);
+        }
+        if (this.accessoriesToBeRegistered.length !== 0) {
+            api.registerPlatformAccessories(
+                "homebridge-nexa-switch-platform",
+                "NexaSwitchPlatform",
+                this.accessoriesToBeRegistered);
+        }
+        if (this.accessoriesToBeUnregistered.length !== 0) {
+            api.unregisterPlatformAccessories(
+                "homebridge-nexa-switch-platform",
+                "NexaSwitchPlatform",
+                this.accessoriesToBeUnregistered);
+        }
         this.log("Finished launching...");
     });
 
@@ -139,11 +108,14 @@ NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
     // TODO: write an actual function here
 };
 
+NexaSwitchPlatform.prototype.validateConfig = function(config) {
+    return true; // TODO: actually make this function
+};
+
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
     for (let index in this.accessories) {
         if (this.accessories[index].UUID === uuid) {
-            this.accessoriesToBeUnregistered.splice(index); // TODO: check that method "remove()" actually
-            // exists
+            this.accessoriesToBeUnregistered.splice(index);
             return true;
         }
     }
