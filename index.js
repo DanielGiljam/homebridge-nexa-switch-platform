@@ -93,7 +93,7 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
     const switchService = accessory.addService(Service.Switch, 'Power Switch');
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind(this));
+        .on("set", this.setSwitchOnCharacteristic.bind({ target: this.accessories.indexOf(accessoryInformation) }));
 
     this.accessoriesToBeRegistered.push(accessory);
 };
@@ -105,7 +105,7 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
     const reqContent = querystring.stringify({
-        target: '?', // TODO: figure out how to get target into here
+        target: this.target,
         state: on
     });
     const reqOptions = {
@@ -118,25 +118,11 @@ NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
         }
     };
     const req = http.request(reqOptions, res => {
-        this.log(`Response status code: ${res.statusCode} –> ${res.statusMessage}\n`);
-        let data = '';
-        res.on('data', chunk => {
-            data += chunk.toString();
-        });
         res.on('end', () => {
-            let data = querystring.parse(data);
-            if (data.target) {
-                if (data.state) {
-                    this.log(`Target ${data.target} was requested to alter into state ${data.state}`);
-                } else {
-                    this.log('Incomplete request: a target state was not provided');
-                }
-            } else {
-                this.log('Incomplete request: a target was not provided');
-            }
             return next();
         });
     });
+    req.write(reqContent);
     req.end();
 };
 
