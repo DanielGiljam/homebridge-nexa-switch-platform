@@ -31,7 +31,7 @@ function Controller(log, config) {
                 if (postData.state != null) {
                     this.log(`Target ${postData.target} was requested to alter into state ${postData.state}`);
                     res.write(`Target ${postData.target} was requested to alter into state ${postData.state}`);
-                    exec(`piHomeEasy 0 ${this.config.emitterId} ${postData.target} on`); // TODO: test postData.state and change hardcoded 'on'
+                    exec(`sudo piHomeEasy 0 ${this.config.emitterId} ${postData.target} on`); // TODO: test postData.state and change hardcoded 'on'
                 } else {
                     this.log('Incomplete request: a target state was not provided');
                     res.writeHead(406, 'Incomplete request: target state was not provided');

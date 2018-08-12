@@ -41,7 +41,7 @@ function NexaSwitchPlatform(log, config, api) {
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
 
-    controller(this.config.controllerPort);
+    controller(this.config);
 
     this.accessories = [];
     this.accessoriesToBeRegistered = [];
