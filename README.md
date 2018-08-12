@@ -22,13 +22,13 @@ In your **_`config.json`_**, the following information needs to be added, in ord
       "platform": "NexaSwitchPlatform",
       "name": "NEXA Switch Platform",
       "controllerPort": 51927,
-      "emitterId": "31415",
+      "emitterId": 31415,
       "accessoryInformation": [
         {
           "name": "Switch",
           "manufacturer": "NEXA",
           "model": "PER-1500",
-          "serialNumber": "481-148-592"
+          "serialNumber": "481-48-592"
         }
       ]
     },

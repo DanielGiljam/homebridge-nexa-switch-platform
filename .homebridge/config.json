@@ -3,20 +3,20 @@
 	  "name": "Example Homebridge Server",
 	  "username": "24:64:F3:C1:A3:A1",
 	  "port": 51926,
-	  "pin": "602-523-679"
+	  "pin": "602-23-679"
   },
 	"platforms": [
 		{
 			"platform": "NexaSwitchPlatform",
 			"name": "NEXA Switch Platform",
 			"controllerPort": 51927,
-			"emitterId": "31415",
+			"emitterId": 31415,
 			"accessoryInformation": [
 				{
 					"name": "Example Switch",
 					"manufacturer": "Example Manufacturer",
 					"model": "Example Model",
-					"serialNumber": "693-295-284"
+					"serialNumber": "693-29-284"
 				}
 			]
 		}
