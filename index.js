@@ -91,7 +91,7 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
         .setCharacteristic(Characteristic.Model, accessoryInformation.model)
         .setCharacteristic(Characteristic.SerialNumber, accessoryInformation.serialNumber);
 
-    const switchService = accessory.addService(Service.Switch, 'Power Switch');
+    const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
     switchService.getCharacteristic(Characteristic.On)
         .on("set", this.setSwitchOnCharacteristic.bind({ config: this.config, target: this.accessories.indexOf(accessoryInformation) }));
 
