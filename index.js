@@ -1,10 +1,7 @@
 "use strict";
 
-const http = require("http");
-const querystring = require("querystring");
+const exec = require('child_process').exec;
 let PlatformAccessory, Characteristic, Service, UUIDGen, Logger;
-
-const controller = require("./controller");
 
 module.exports = homebridge => {
 
@@ -28,20 +25,17 @@ function NexaSwitchPlatform(log, config, api) {
     if (config != null && this.validateConfig(config)) {
         this.config = config;
     } else {
-        this.config = { platform: 'NexaSwitchPlatform', name: 'Nexa Switch Platform', controllerPort: 51927, emitterId: '31415', accessoryInformation: [] };
+        this.config = { platform: 'NexaSwitchPlatform', name: 'Nexa Switch Platform', emitterId: '31415', accessoryInformation: [] };
         this.log(
             "Could not read Homebridge configuration. " +
             "Values default to platform: 'NexaSwitchPlatform', " +
             "name: 'Nexa Switch Platform', " +
-            "controller port: '51827', " +
             "emitter id: '31415' and 0 accessories.");
     }
 
     if (api == null) throw new Error(
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
-
-    controller(this.config);
 
     this.accessories = [];
     this.accessoriesToBeRegistered = [];
@@ -59,6 +53,7 @@ function NexaSwitchPlatform(log, config, api) {
                 this.accessoriesToBeRegistered);
         }
         if (this.accessoriesToBeUnregistered.length !== 0) {
+            this.log(`Removing ${this.accessoriesToBeUnregistered.length} deprecated accessories...`);
             api.unregisterPlatformAccessories(
                 "homebridge-nexa-switch-platform",
                 "NexaSwitchPlatform",
@@ -93,7 +88,7 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
     const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ config: this.config, target: this.accessories.indexOf(accessoryInformation) }));
+        .on("set", this.setSwitchOnCharacteristic.bind({ accessoryIndex: this.accessories.indexOf(accessoryInformation), log: this.log, config: this.config }));
 
     this.accessoriesToBeRegistered.push(accessory);
 };
@@ -104,32 +99,15 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
 };
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
-    const reqContent = querystring.stringify({
-        target: this.target,
-        state: on
-    });
-    const reqOptions = {
-        hostname: 'localhost',
-        port: this.config.controllerPort,
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': Buffer.byteLength(reqContent)
-        }
-    };
-    const req = http.request(reqOptions, res => {
-        res.on('end', () => {
-            return next();
-        });
-    });
-    req.write(reqContent);
-    req.end();
+    const state = on ? 'off' : 'on';
+    this.log(`Target ${this.accessoryIndex} was requested to alter into state ${state}`);
+    exec(`sudo piHomeEasy 0 ${this.config.emitterId} ${this.accessoryIndex} ${state}`);
+    return next();
 };
 
 NexaSwitchPlatform.prototype.validateConfig = function(config) {
     const platformSet = config.platform != null && typeof config.platform === 'string';
     const nameSet = config.name != null && typeof config.name === 'string';
-    const controllerPortSet = config.controllerPort != null && typeof config.controllerPort === 'number' && config.controllerPort >= 1 && config.controllerPort <= 65535;
     const emitterIdSet = config.emitterId != null && typeof config.emitterId === 'number' && config.emitterId >= 1 && config.emitterId <= 67108862;
     let accessoryInformationSet = config.accessoryInformation != null;
     if (accessoryInformationSet) {
@@ -143,7 +121,7 @@ NexaSwitchPlatform.prototype.validateConfig = function(config) {
             if (!accessoryInformationSet) break;
         }
     }
-    return platformSet && nameSet && controllerPortSet && emitterIdSet && accessoryInformationSet;
+    return platformSet && nameSet && emitterIdSet && accessoryInformationSet;
 };
 
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {

@@ -3,7 +3,7 @@
 This is a [Homebridge](https://www.npmjs.com/package/homebridge) plugin for controlling remote controlled power switches manufactured by Nexa.
 It may potentially work with any 'switch -like' device communicating over the HomeEasy protocol.
 
-The pre-requirements are:
+The prerequisites are:
 - An external radio transmitter that transmits on the 433 MHz frequency connected to your Pi's GPIO
 - piHomeEasy: a software for controlling devices using the HomeEasy protocol ([github.com/nbogojevic/piHomeEasy](https://github.com/nbogojevic/piHomeEasy))
 - Wiring Pi: a library for accessing the Pi's GPIO. The piHomeEasy software depends on it. ([wiringpi.com](http://wiringpi.com))
@@ -21,7 +21,6 @@ In your **_`config.json`_** -file, the following information needs to be added i
     {
       "platform": "NexaSwitchPlatform",
       "name": "Nexa Switch Platform",
-      "controllerPort": 51927,
       "emitterId": 31415,
       "accessoryInformation": [
         {
