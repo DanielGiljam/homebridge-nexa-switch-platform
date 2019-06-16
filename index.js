@@ -88,7 +88,7 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
     const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ accessoryIndex: (this.accessories.indexOf(accessoryInformation) + 1), config: this.config }));
+        .on("set", this.setSwitchOnCharacteristic.bind({ emitterId: this.config.emitterId, accessoryIndex: (this.config.accessoryInformation.indexOf(accessoryInformation) + 1) }));
 
     this.accessoriesToBeRegistered.push(accessory);
 };
@@ -100,7 +100,7 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
     const state = on ? 'on' : 'off';
-    exec(`sudo piHomeEasy 0 ${this.config.emitterId} ${this.accessoryIndex} ${state}`);
+    exec(`sudo piHomeEasy 0 ${this.emitterId} ${this.accessoryIndex} ${state}`);
     return next();
 };
 
