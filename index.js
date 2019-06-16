@@ -25,11 +25,12 @@ function NexaSwitchPlatform(log, config, api) {
     if (config != null && this.validateConfig(config)) {
         this.config = config;
     } else {
-        this.config = { platform: 'NexaSwitchPlatform', name: 'Nexa Switch Platform', emitterId: '31415', accessoryInformation: [] };
+        this.config = { platform: 'NexaSwitchPlatform', name: 'Nexa Switch Platform', transmitterPin: 0, emitterId: 31415, accessoryInformation: [] };
         this.log(
             "Could not read Homebridge configuration. " +
             "Values default to platform: 'NexaSwitchPlatform', " +
             "name: 'Nexa Switch Platform', " +
+            "transmitter pin: '0', " +
             "emitter id: '31415' and 0 accessories.");
     }
 
@@ -89,49 +90,100 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
     const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ emitterId: this.config.emitterId,
-                                                         accessoryIndex: accessoryInformation.accessoryId }));
-
+        .on("set", this.setSwitchOnCharacteristic.bind({ 
+          log: this.log,
+          transmitterPin: this.config.transmitterPin,
+          emitterId: this.config.emitterId,
+          accessoryName: accessoryInformation.name,
+          accessoryId: accessoryInformation.accessoryId
+        }));
+        
     this.accessoriesToBeRegistered.push(accessory);
 };
 
 NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
+  
     this.log(`Restoring accessory '${accessory.context.name} (${accessory.context.manufacturer} ${accessory.context.model})'...`);
     
     const switchService = accessory.getService(Service.Switch);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ emitterId: this.config.emitterId,
-                                                         accessoryIndex: accessory.context.accessoryId }));
-    
+        .on("set", this.setSwitchOnCharacteristic.bind({ 
+          log: this.log,
+          transmitterPin: this.config.transmitterPin,
+          emitterId: this.config.emitterId,
+          accessoryName: accessory.context.name,
+          accessoryId: accessory.context.accessoryId
+        }));
+        
     this.accessories.push(accessory);
 };
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
+  
     const state = on ? 'on' : 'off';
-    exec(`sudo piHomeEasy 0 ${this.emitterId} ${this.accessoryIndex} ${state}`);
+    exec(`sudo piHomeEasy ${this.transmitterPin} ${this.emitterId} ${this.accessoryId} ${state}`, (error, stdout, stderr) => {
+        if (error) {
+            this.log(`[${this.accessoryName}] Error executing piHomeEasy!`);
+            console.error(error);
+        } else {
+            this.log(`[${this.accessoryName}] ${stdout}`);
+        }
+    });
     return next();
 };
 
 NexaSwitchPlatform.prototype.validateConfig = function(config) {
+  
     const platformSet = config.platform != null && typeof config.platform === 'string';
     const nameSet = config.name != null && typeof config.name === 'string';
+    
+    // transmitterPin is not required in the config to enhance backwards compatibility
+    let transmitterPinSet = this.config.transmitterPin != null && typeof this.config.transmitterPin === 'number' && this.config.transmitterPin >= 0 && this.config.transmitterPin <= 16;
+    if (this.config.transmitterPin == null) {
+      this.config.transmitterPin = 0;
+      transmitterPinSet = true;
+    }
+    
     const emitterIdSet = config.emitterId != null && typeof config.emitterId === 'number' && config.emitterId >= 1 && config.emitterId <= 67108862;
+    
     let accessoryInformationSet = config.accessoryInformation != null;
     if (accessoryInformationSet) {
+      
         for (let index in config.accessoryInformation) {
             const accessoryInformation = config.accessoryInformation[index];
             const nameSet = accessoryInformation.name != null && typeof accessoryInformation.name === 'string';
             const manufacturerSet = accessoryInformation.manufacturer != null && typeof accessoryInformation.manufacturer === 'string';
             const modelSet = accessoryInformation.model != null && typeof accessoryInformation.model === 'string';
             const serialNumberSet = accessoryInformation.serialNumber != null && typeof accessoryInformation.serialNumber === 'string';
-            accessoryInformationSet = nameSet && manufacturerSet && modelSet && serialNumberSet;
+            
+            // accessoryId is not required in the config to enhance backwards compatibility
+            let accessoryIdSet = accessoryInformation.accessoryId != null && typeof accessoryInformation.accessoryId === 'number' && accessoryInformation.accessoryId >= 0 && accessoryInformation.accessoryId <= 15;
+            if (accessoryInformation.accessoryId == null) {
+                const accessoryIds = [];
+                for (let accessoryIdIndex in this.config.accessoryInformation) {
+                    if (this.config.accessoryInformation[accessoryIdIndex].accessoryId != null && typeof this.config.accessoryInformation.accessoryId === 'number' && this.config.accessoryInformation.accessoryId >= 0 && this.config.accessoryInformation.accessoryId <= 15)
+                        accessoryIds.push(this.config.accessoryInformation[accessoryIdIndex].accessoryId);
+                }
+                let accessoryIndex = index;
+                while (accessoryIds.includes(accessoryIndex))
+                    accessoryIndex++;
+                if (accessoryIndex <= 15) {
+                    this.config.accessoryInformation[index].recieverId = accessoryIndex;
+                    accessoryIdSet = true;
+                }
+            }
+            
+            accessoryInformationSet = nameSet && manufacturerSet && modelSet && serialNumberSet && accessoryIdSet;
             if (!accessoryInformationSet) break;
         }
+        
     }
+    
     return platformSet && nameSet && emitterIdSet && accessoryInformationSet;
 };
 
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
+  
     for (let index in this.accessoriesToBeUnregistered) {
         if (this.accessoriesToBeUnregistered[index].UUID === uuid) {
             this.accessoriesToBeUnregistered.splice(index, 1);

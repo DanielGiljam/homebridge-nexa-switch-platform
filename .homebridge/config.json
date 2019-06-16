@@ -9,6 +9,7 @@
 		{
 			"platform": "NexaSwitchPlatform",
 			"name": "Nexa Switch Platform",
+			"transmitterPin": 0,
 			"emitterId": 31415,
 			"accessoryInformation": [
 				{

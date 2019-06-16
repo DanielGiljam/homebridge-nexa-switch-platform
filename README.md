@@ -21,6 +21,7 @@ In your **_`config.json`_** -file, the following information needs to be added i
     {
       "platform": "NexaSwitchPlatform",
       "name": "Nexa Switch Platform",
+      "transmitterPin": 0,
       "emitterId": 31415,
       "accessoryInformation": [
         {
