@@ -28,11 +28,11 @@ function NexaSwitchPlatform(log, config, api) {
     if (config != null && this.validateConfig(config)) {
         this.config = config;
     } else {
-        this.config = { platform: 'NexaSwitchPlatform', name: 'NEXA Switch Platform', controllerPort: 51927, emitterId: '31415', accessoryInformation: [] };
+        this.config = { platform: 'NexaSwitchPlatform', name: 'Nexa Switch Platform', controllerPort: 51927, emitterId: '31415', accessoryInformation: [] };
         this.log(
             "Could not read Homebridge configuration. " +
             "Values default to platform: 'NexaSwitchPlatform', " +
-            "name: 'NEXA Switch Platform', " +
+            "name: 'Nexa Switch Platform', " +
             "controller port: '51827', " +
             "emitter id: '31415' and 0 accessories.");
     }

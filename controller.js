@@ -29,19 +29,21 @@ function Controller(log, config) {
             const postData = querystring.parse(reqData);
             if (postData.target != null) {
                 if (postData.state != null) {
-                    let state = (!postData.state);
+                    let state = (postData.state) ? 'off' : 'on';
                     this.log(`Target ${postData.target} was requested to alter into state ${state}`);
                     res.write(`Target ${postData.target} was requested to alter into state ${state}`);
+                    res.end();
                     exec(`sudo piHomeEasy 0 ${this.config.emitterId} ${postData.target} ${state}`);
                 } else {
                     this.log('Incomplete request: a target state was not provided');
                     res.writeHead(406, 'Incomplete request: target state was not provided');
+                    res.end();
                 }
             } else {
                 this.log('Incomplete request: a target was not provided');
                 res.writeHead(406, 'Incomplete request: a target was not provided');
+                res.end();
             }
-            res.end();
         });
     });
     this.server.listen(this.config.controllerPort, () => {
