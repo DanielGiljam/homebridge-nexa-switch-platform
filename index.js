@@ -124,9 +124,9 @@ NexaSwitchPlatform.prototype.validateConfig = function(config) {
 };
 
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
-    for (let index in this.accessories) {
-        if (this.accessories[index].UUID === uuid) {
-            this.accessoriesToBeUnregistered.splice(index);
+    for (let index in this.accessoriesToBeUnregistered) {
+        if (this.accessoriesToBeUnregistered[index].UUID === uuid) {
+            this.accessoriesToBeUnregistered.splice(index, 1);
             return true;
         }
     }
