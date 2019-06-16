@@ -3,8 +3,10 @@
 const http = require('http');
 const querystring = require('querystring');
 
-module.exports = (log, port) => {
-    new Controller(message => { log('[Controller Server] ' + message) }, port);
+const logger = require('homebridge/lib/logger').Logger;
+
+module.exports = port => {
+    new Controller(logger.withPrefix('NexaSwitchPlatform: Controller Server'), port);
 };
 
 function Controller(log, port) {
