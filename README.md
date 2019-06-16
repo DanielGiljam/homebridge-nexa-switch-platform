@@ -27,7 +27,8 @@ In your **_`config.json`_** -file, the following information needs to be added i
           "name": "Switch",
           "manufacturer": "Nexa",
           "model": "PER-1500",
-          "serialNumber": "481-48-592"
+          "serialNumber": "481-48-592",
+          "accessoryId": 0
         }
       ]
     },
