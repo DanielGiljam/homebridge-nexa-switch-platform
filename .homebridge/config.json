@@ -1,4 +1,3 @@
-
 {
 	"bridge": {
 	  "name": "Homebridge Test Server",
@@ -9,7 +8,23 @@
 	"platforms": [
 		{
 			"platform": "NexaSwitchPlatform",
-			"name": "NEXA Switch Platform"
+			"name": "NEXA Switch Platform",
+			"controllerPort": 51927,
+			"emitterId": "31415",
+			"accessoryInformation": [
+				{
+					"name": "Switch 1",
+					"manufacturer": "NEXA",
+					"model": "PER-1500",
+					"serialNumber": "481-148-592"
+				},
+				{
+					"name": "Switch 2",
+					"manufacturer": "NEXA",
+					"model": "PER-1500",
+					"serialNumber": "481-148-593"
+				}
+			]
 		}
 	]
 }
