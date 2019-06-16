@@ -1,9 +1,9 @@
 {
   "bridge": {
-    "name": "Example Homebridge Server",
-    "username": "24:64:F3:C1:A3:A1",
-    "port": 51926,
-    "pin": "602-23-679"
+    "name": "Testbridge",
+    "username": "56:D8:A2:97:B3:23",
+    "port": 40149,
+    "pin": "097-45-678"
   },
   "platforms": [
     {
@@ -12,10 +12,88 @@
       "emitterId": 31415,
       "accessories": [
         {
-          "accessoryName": "Example Switch",
-          "accessoryId": 0,
-          "manufacturer": "Example Manufacturer",
-          "model": "Example Model"
+          "accessoryName": "Switch 1",
+          "accessoryId": 4,
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 2",
+          "accessoryId": 1,
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 3",
+          "accessoryId": 2,
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 4",
+          "accessoryId": 3,
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 5",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 6",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 7",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 8",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 9",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 10",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 11",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 12",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 13",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 14",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 15",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
+        },
+        {
+          "accessoryName": "Switch 16",
+          "manufacturer": "Some Manufacturer",
+          "model": "Some Model"
         }
       ]
     }

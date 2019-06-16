@@ -30,7 +30,8 @@ class ConfigProcessor {
         // If the config's list of accessories' length surpasses the HomeEasy protocol's accessory limit, then the validation returns false.
         if (this.config.accessories.length > 16) {
             this.log.error('Amount of accessories declared in the config exceeds the maximum amount of accessories allowed (16). Unable to add/restore any accessories.');
-            return false;
+            this.config.accessories = [];
+            return this.config;
         }
 
         // Spotting out invalid accessories...
@@ -52,9 +53,12 @@ class ConfigProcessor {
             // model: if provided, must be a string
             if (!ConfigProcessor.validateOptionalProperty(accessory.model, 'string')) invalidProperties.push('model');
 
+            // serialNumber: if provided, must be a string
+            if (!ConfigProcessor.validateOptionalProperty(accessory.serialNumber, 'string')) invalidProperties.push('serialNumber');
+
             if (invalidProperties.length !== 0) {
                 const whichAccessory = ConfigProcessor.getPrintableArrayIndex(accessoryIndex);
-                for (let propertyName of invalidProperties) {
+                for (let propertyName in invalidProperties) {
                     if (!invalidAccessories.includes(accessoryIndex)) {
                         switch (propertyName) {
                             case 'accessoryName':
@@ -67,7 +71,7 @@ class ConfigProcessor {
                                 break;
                             default:
                                 this.log(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Ignoring property...`);
-                                this.config.accessories[propertyName] = null; // Resetting faulty but optional properties
+                                this.config.accessories[accessoryIndex][propertyName] = null; // Resetting faulty but optional properties
                         }
                     }
                 }
@@ -109,9 +113,9 @@ class ConfigProcessor {
             }
         }
 
-        // TODO: Maybe add generation of serial numbers. Whether or not will resolve during testing.
+        this.config.accessories = validatedAccessories;
 
-        return validatedAccessories;
+        return this.config;
     }
     static validateProperty(property, expectedType) {
         return property != null && typeof property === expectedType;

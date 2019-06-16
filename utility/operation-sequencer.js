@@ -4,10 +4,6 @@ const SEQUENCE_TIMEOUT = 1000;
 
 class OperationSequencer {
 
-    opQueue = [];
-    execSwitch = false;
-    referenceTimer = new ReferenceTimer({timeoutMonitor: true});
-
     /**
      * @typedef Operation
      * @type {function}
@@ -22,6 +18,9 @@ class OperationSequencer {
     constructor(operation, log) {
         this.operation = operation;
         this.log = log;
+        this.opQueue = [];
+        this.referenceTimer = new ReferenceTimer({timeoutMonitor: true});
+        this.execSwitch = false;
     }
 
     /**
@@ -36,8 +35,8 @@ class OperationSequencer {
     refreshTimer() {
         try {
             this.sequenceTimer.refresh();
-        } catch (error if error instanceof ReferenceError) {
-            this.sequenceTimer = setTimeout(this.executeSequence, SEQUENCE_TIMEOUT);
+        } catch (error) {
+            if (error instanceof ReferenceError) this.sequenceTimer = setTimeout(this.executeSequence, SEQUENCE_TIMEOUT);
         }
         this.referenceTimer.reset();
     }
@@ -54,8 +53,8 @@ class OperationSequencer {
         const timeDiff = 0;
         for (let opInstance in execQueue) {
             if (this.execSwitch) {
-                this.log(await this.operation(...opInstance).then(result => result) + ` Elapsed time in execution: total: ${refTimer.getTime()}ms, diff: ${refTimer.getTime() - timeDiff}.`);
-                this.opQueue.splice(this.opQueue.indexOf(opInstance), 1);
+                this.log(await this.operation(...execQueue[opInstance]).then(result => result) + ` Elapsed time in execution: total: ${refTimer.getTime()}ms, diff: ${refTimer.getTime() - timeDiff}.`);
+                this.opQueue.splice(opInstance, 1);
             } else {
                 this.log(`Operation sequence execution was aborted. Elapsed time in execution: total: ${refTimer.getTime()}ms, diff: ${refTimer.getTime() - timeDiff}.`);
                 return;
@@ -67,11 +66,10 @@ class OperationSequencer {
 
 class ReferenceTimer {
 
-    startTime = Date.now();
-    timeoutIdle = true;
-
     constructor() {
+        this.startTime = Date.now();
         this.timeoutMonitor = (arguments[0].timeoutMonitor != null) ? arguments[0].timeoutMonitor : false;
+        this.timeoutIdle = true;
     }
 
     getTime() {
@@ -83,8 +81,8 @@ class ReferenceTimer {
         } else return time;
     }
     reset() {
-        this.timeoutIdle = false;
         this.startTime = Date.now();
+        this.timeoutIdle = false;
     }
 }
 
