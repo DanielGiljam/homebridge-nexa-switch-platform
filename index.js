@@ -1,10 +1,28 @@
+/*
+
+Copyright 2019 Daniel Giljam
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
 "use strict";
 
 // const util = require('util');
 // const exec = util.promisify(require('child_process').exec);
+const fs = require('fs');
 const spawn = require('child_process').spawn;
 
-const ConfigProcessor = require('./utility/config-processor');
 const OperationSequencer = require('./utility/operation-sequencer');
 
 let PlatformAccessory, Characteristic, Service, UUIDGen, Logger;
@@ -29,7 +47,7 @@ function NexaSwitchPlatform(log, config, api) {
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
 
-    this.config = new ConfigProcessor(log, config).validateConfig();
+    this.config = this.validateConfig(config);
     this.log = log;
 
     this.accessories = [];
@@ -49,7 +67,7 @@ function NexaSwitchPlatform(log, config, api) {
         return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout.trim()}', stderr: '${stderr.trim()}'.`;
     }, */async (queue) => {
         return await new Promise((resolve, reject) => {
-            const process = spawn(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/utility/piHomeEasyExtended.sh' */'./utility/piHomeEasyExtended.sh',
+            const process = spawn(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/scripts/piHomeEasyExtended.sh' */'./scripts/piHomeEasyExtended.sh',
               [
                 this.config.transmitterPin,
                 this.config.emitterId,
@@ -94,6 +112,140 @@ function NexaSwitchPlatform(log, config, api) {
     });
 
 }
+
+NexaSwitchPlatform.prototype.validateConfig = function(config) {
+
+    const validateProperty = function(property, expectedType) {
+        return property != null && typeof property === expectedType;
+    };
+    const validateNumber = function(number, min, max) {
+        return this.validateProperty(number, 'number') && number >= min && number <= max;
+    };
+    const validateOptionalProperty = function(property, expectedType) {
+        return property == null || this.validateProperty(property, expectedType);
+    };
+    const validateOptionalNumber = function(number, min, max) {
+        return number == null || this.validateNumber(number, min, max);
+    };
+    const getPrintableArrayIndex = function(index) {
+        index++;
+        switch (index) {
+            case 0:
+                return index += 'st';
+            case 1:
+                return index += 'nd';
+            case 2:
+                return index += 'rd';
+            default:
+                return index += 'th';
+        }
+    };
+
+    // Validating the platform's parameters...
+
+    const invalidProperties = [];
+
+    // transmitterPin: must be a number, min. 0, max. 16
+    if (!validateNumber(config.transmitterPin, 0, 16)) invalidProperties.push('transmitterPin');
+
+    // emitterId: must be a number, min. 1, max. 67108862
+    if (!validateNumber(config.emitterId, 1, 67108862)) invalidProperties.push('emitterId');
+
+    if (invalidProperties.length !== 0) {
+        const fallbackConfig = JSON.parse(`${fs.readFileSync(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/miscellaneous/fallback-config.json' */'./miscellaneous/fallback-config.json')}`);
+        for (let propertyName of invalidProperties) {
+            this.log.error(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`);
+            config[propertyName] = fallbackConfig[propertyName];
+        }
+    }
+
+    // If the config's list of accessories' length surpasses the HomeEasy protocol's accessory limit, then the validation returns false.
+    if (config.accessories.length > 16) {
+        this.log.error('Amount of accessories declared in the config exceeds the maximum amount of accessories allowed (16). Unable to add/restore any accessories.');
+        config.accessories = [];
+        return config;
+    }
+
+    // Spotting out invalid accessories...
+    const invalidAccessories = [];
+    for (let accessoryIndex in config.accessories) {
+
+        const accessory = config.accessories[accessoryIndex];
+        const invalidProperties = [];
+
+        // accessoryName: must be a string
+        if (!validateProperty(accessory.accessoryName, 'string')) invalidProperties.push('accessory');
+
+        // accessoryId: if provided, must be a number, min. 0, max. 15
+        if (!validateOptionalNumber(accessory.accessoryId, 0, 15)) invalidProperties.push('accessoryId');
+
+        // manufacturer: if provided, must be a string
+        if (!validateOptionalProperty(accessory.manufacturer, 'string')) invalidProperties.push('manufacturer');
+
+        // model: if provided, must be a string
+        if (!validateOptionalProperty(accessory.model, 'string')) invalidProperties.push('model');
+
+        // serialNumber: if provided, must be a string
+        if (!validateOptionalProperty(accessory.serialNumber, 'string')) invalidProperties.push('serialNumber');
+
+        if (invalidProperties.length !== 0) {
+            const whichAccessory = getPrintableArrayIndex(accessoryIndex);
+            for (let propertyName of invalidProperties) {
+                if (!invalidAccessories.includes(accessoryIndex)) {
+                    switch (propertyName) {
+                        case 'accessoryName':
+                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Every accessory must have a unique name. Skipping accessory...`);
+                            invalidAccessories.unshift(accessoryIndex);
+                            break;
+                        case 'accessoryId':
+                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Skipping accessory...`);
+                            invalidAccessories.unshift(accessoryIndex);
+                            break;
+                        default:
+                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Ignoring property...`);
+                            config.accessories[accessoryIndex][propertyName] = null; // Resetting faulty but optional properties
+                    }
+                }
+            }
+        }
+    }
+
+    // Removing the invalid accessories...
+    for (let accessoryIndex of invalidAccessories) {
+        config.accessories.splice(accessoryIndex, 1);
+    }
+
+    // Assigning ids to all accessories...
+    const validatedAccessories = [];
+    const accessoryIds = [];
+
+    // Extracting all accessories with specified accessoryId's...
+    for (let accessory of config.accessories) {
+        if (accessory.accessoryId != null) {
+            validatedAccessories[accessory.accessoryId] = accessory;
+            accessoryIds.push(accessory.accessoryId);
+        }
+    }
+
+    for (let accessoryIndex in config.accessories) {
+        if (config.accessories[accessoryIndex].accessoryId == null) {
+            let accessoryId = parseInt(accessoryIndex);
+            let maxLaps = 15;
+            while (accessoryIds.includes(accessoryId) && maxLaps > 0) {
+                if (accessoryId === 15) accessoryId = 0;
+                else accessoryId++;
+                maxLaps--;
+            }
+            accessoryIds.push(accessoryId);
+            config.accessories[accessoryIndex].accessoryId = accessoryId;
+            validatedAccessories[accessoryId] = config.accessories[accessoryIndex];
+        }
+    }
+
+    config.accessories = validatedAccessories;
+
+    return config;
+};
 
 NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
@@ -219,22 +371,26 @@ NexaSwitchPlatform.prototype.optimizeOperation = function(queue) {
         return changed;
     } else if (quota > 0.5) {
         return changedFilteredInverted.unshift({
-            accessoryId: -1, // TODO: check if it's really -1
+            accessoryId: -1,
             state: stateZero
         });
     } else if (quota === 0.5) {
         return changedFiltered.unshift({
-            accessoryId: -1, // TODO: check if it's really -1
+            accessoryId: -1,
             state: !stateZero
         });
     } else {
         return changedFiltered.unshift({
-            accessoryId: -1, // TODO: check if it's really -1
+            accessoryId: -1,
             state: !stateZero
         });
     }
 };
 
 NexaSwitchPlatform.prototype.manufactureArguments = function(queue) {
-
+    const argArray = [];
+    for (let queueObject of queue) {
+        argArray.push(queueObject.accessoryId, (queueObject.state) ? 'on' : 'off');
+    }
+    return argArray;
 };

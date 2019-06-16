@@ -14,7 +14,7 @@
     "homebridge-plugin"
   ],
   "author": "Daniel Giljam",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/DanielGiljam/nexa-switch-homebridge-plugin/issues"
   },
