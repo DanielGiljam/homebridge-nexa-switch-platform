@@ -80,6 +80,7 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
     accessory.context.name = accessoryInformation.name;
     accessory.context.manufacturer = accessoryInformation.manufacturer;
     accessory.context.model = accessoryInformation.model;
+    accessory.context.accessoryId = accessoryInformation.accessoryId;
 
     accessory.getService(Service.AccessoryInformation)
         .setCharacteristic(Characteristic.Manufacturer, accessoryInformation.manufacturer)
