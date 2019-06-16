@@ -16,28 +16,65 @@ module.exports = (homebridge) => {
 
 function NexaSwitchPlatform(log, config, api) {
 
-    // Self reference variable for accessing self's properties regardless of where the 'this' -keyword points
-    const platform = this;
-
     if (log) this.log = log;
-    else throw new Error("Log parameter neglected when the NexaSwitchPlatform constructor was called!");
+    else throw new Error(
+        "Log parameter neglected when the NexaSwitchPlatform constructor was called!");
+
+    this.log = "Launching...";
 
     if (config && config.controllerAddress) {
         this.config = config;
     } else if (config) {
         this.config = {"controllerAddress": "localhost:51827"};
-        this.log.warn("Controller address could not be read from Homebridge configuration " +
+        this.log.warn(
+            "Controller address could not be read from Homebridge configuration " +
             "–> defaults to 'localhost:51827'.");
     } else {
         this.config = {"controllerAddress": "localhost:51827"};
-        this.log.warn("Could not read Homebridge configuration. " +
-            "Controller address defaulted to 'localhost:51827'.");
+        this.log.warn(
+            "Could not read Homebridge configuration. " +
+            "Controller address defaults to 'localhost:51827'.");
     }
 
     if (api) this.api = api;
-    else throw new Error("API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
-        "A possible cause may be an outdated Homebridge installation.");
+    else throw new Error(
+        "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
+        "Check the version of your Homebridge installation. It may be outdated.");
 
     // TODO: insert controller server startup here and fetch number of accessories
 
+    this.api.on("didFinishLaunching", function() {
+        this.log("Finished launching...");
+    }.bind(this));
+
 }
+
+NexaSwitchPlatform.prototype.addAccessory = (accessoryInformation) => {
+
+    const accessory = new PlatformAccessory(accessoryInformation.name, UUIDGen.generate(accessoryInformation.name));
+
+    accessory.context.name = accessoryInformation.name;
+    accessory.context.manufacturer = accessoryInformation.manufacturer;
+    accessory.context.model = accessoryInformation.model;
+
+    accessory.getService(Service.AccessoryInformation)
+        .setCharacteristic(Characteristic.Manufacturer, accessoryInformation.manufacturer)
+        .setCharacteristic(Characteristic.Model, accessoryInformation.model)
+        .setCharacteristic(Characteristic.SerialNumber, accessoryInformation.serialNumber);
+
+    const switchService = accessory.addService(Service.Switch, "Power Switch");
+    switchService.getCharacteristic(Characteristic.On)
+        .on("get", () => {}) // TODO: write an actual function here
+        .on("set", () => {}) // TODO: write an actual function here
+
+};
+
+NexaSwitchPlatform.prototype.getSwitchOnCharacteristic = (next) => {
+
+};
+
+NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = (on, next) => {
+
+};
+
+
