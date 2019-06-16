@@ -88,7 +88,8 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
     const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ emitterId: this.config.emitterId, accessoryIndex: (this.config.accessoryInformation.indexOf(accessoryInformation) + 1) }));
+        .on("set", this.setSwitchOnCharacteristic.bind({ emitterId: this.config.emitterId,
+                                                         accessoryIndex: this.config.accessoryInformation.accessoryId }));
 
     this.accessoriesToBeRegistered.push(accessory);
 };
