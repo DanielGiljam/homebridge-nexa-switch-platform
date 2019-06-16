@@ -1,8 +1,10 @@
 "use strict";
 
-const exec = require('child_process').exec;
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 const ConfigProcessor = require('./utility/config-processor');
+const OperationSequencer = require('./utility/operation-sequencer');
 
 let PlatformAccessory, Characteristic, Service, UUIDGen, Logger;
 
@@ -32,6 +34,11 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessories = [];
     this.accessoriesToBeRegistered = [];
     this.accessoriesToBeUnregistered = [];
+
+    this.operationSequencer = new OperationSequencer(async function (accessoryId, state) {
+        const { stdout, stderr } = await exec(`sudo piHomeEasy ${this.transmitterPin} ${this.emitterId} ${accessoryId} ${state}`);
+        return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout}', stderr: '${stderr}'.`;
+    }, log);
 
     api.on("didFinishLaunching", () => {
         this.accessoriesToBeUnregistered = this.accessories;
@@ -115,14 +122,7 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
 
     const state = on ? 'on' : 'off';
-    exec(`sudo piHomeEasy ${this.transmitterPin} ${this.emitterId} ${this.accessoryId} ${state}`, (error, stdout, stderr) => {
-        if (error) {
-            this.log(`[${this.accessoryName}] Error executing piHomeEasy!`);
-            console.error(error);
-        } else {
-            this.log(`[${this.accessoryName}] ${stdout}`);
-        }
-    });
+    this.operationSequencer.sendOp(this.accessoryId, state);
     return next();
 };
 
