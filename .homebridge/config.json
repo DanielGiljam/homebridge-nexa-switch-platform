@@ -1,28 +1,22 @@
 {
 	"bridge": {
-	  "name": "Homebridge Test Server",
-	  "username": "45:42:6B:C1:F1:A1",
+	  "name": "Example Homebridge Server",
+	  "username": "24:64:F3:C1:A3:A1",
 	  "port": 51926,
-	  "pin": "743-52-953"
+	  "pin": "602-23-679"
   },
 	"platforms": [
 		{
 			"platform": "NexaSwitchPlatform",
 			"name": "NEXA Switch Platform",
 			"controllerPort": 51927,
-			"emitterId": "31415",
+			"emitterId": 31415,
 			"accessoryInformation": [
 				{
-					"name": "Switch 1",
-					"manufacturer": "NEXA",
-					"model": "PER-1500",
-					"serialNumber": "481-148-592"
-				},
-				{
-					"name": "Switch 2",
-					"manufacturer": "NEXA",
-					"model": "PER-1500",
-					"serialNumber": "481-148-593"
+					"name": "Example Switch",
+					"manufacturer": "Example Manufacturer",
+					"model": "Example Model",
+					"serialNumber": "693-29-284"
 				}
 			]
 		}

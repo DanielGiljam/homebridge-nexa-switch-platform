@@ -48,7 +48,7 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessoriesToBeUnregistered = [];
 
     api.on("didFinishLaunching", () => {
-        this.config.accessoriesToBeUnregistered = this.accessories;
+        this.accessoriesToBeUnregistered = this.accessories;
         for (let index in this.config.accessoryInformation) {
             this.addAccessory(this.config.accessoryInformation[index]);
         }
@@ -91,9 +91,9 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
         .setCharacteristic(Characteristic.Model, accessoryInformation.model)
         .setCharacteristic(Characteristic.SerialNumber, accessoryInformation.serialNumber);
 
-    const switchService = accessory.addService(Service.Switch, 'Power Switch');
+    const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ target: this.accessories.indexOf(accessoryInformation) }));
+        .on("set", this.setSwitchOnCharacteristic.bind({ config: this.config, target: this.accessories.indexOf(accessoryInformation) }));
 
     this.accessoriesToBeRegistered.push(accessory);
 };
