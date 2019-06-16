@@ -47,7 +47,7 @@ class OperationSequencer {
     }
 
     async executeSequence() {
-        const execQueue = this.opQueue;
+        const execQueue = this.opQueue.slice(0);
         this.execSwitch = true;
         const refTimer = new ReferenceTimer();
         let timeDiff = 0;

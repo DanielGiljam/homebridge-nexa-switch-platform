@@ -36,9 +36,7 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessoriesToBeUnregistered = [];
 
     this.operationSequencer = new OperationSequencer(async (accessoryId, state) => {
-        // const { stdout, stderr } = await exec(`sudo piHomeEasy ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
-        const line = `piHomeEasy ${this.transmitterPin} ${this.emitterId} ${this.accessoryId} ${state}`;
-        const { stdout, stderr } = await exec(`echo "${line}" >> ~/desktop/testbridge_log.txt; sleep 1; echo "${line}"`);
+        const { stdout, stderr } = await exec(`sudo piHomeEasy ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
         return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout.trim()}', stderr: '${stderr.trim()}'.`;
     }, log);
 
