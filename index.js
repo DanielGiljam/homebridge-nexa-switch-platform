@@ -39,10 +39,9 @@ function NexaSwitchPlatform(log, config, api) {
     this.operationSequencer = new OperationSequencer(/*async (accessoryId, state) => {
         const { stdout, stderr } = await exec(`sudo ./utility/piHomeEasyExtended.sh ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
         return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout.trim()}', stderr: '${stderr.trim()}'.`;
-    }, */async () => {
-        const queue = arguments;
+    }, */async (...queue) => {
         return await new Promise((resolve, reject) => {
-            const process = spawn('./utility/piHomeEasyExtended.sh', [this.config.transmitterPin, this.config.emitterId, ...queue]);
+            const process = spawn('./../homebridge-nexa-switch-platform/utility/piHomeEasyExtended.sh', [this.config.transmitterPin, this.config.emitterId, ...queue]);
             process.stdout.on('data', data => this.log(`[piHomeEasyExtended] ${data}`.trim()));
             process.stderr.on('data', data => this.log.error(`[piHomeEasyExtended] ${data}`.trim()));
             process.on('close', code => {
@@ -56,7 +55,7 @@ function NexaSwitchPlatform(log, config, api) {
             process.on('error', error => {
                 reject(error)
             });
-        }).catch(error => throw error);
+        }).catch(error => { throw error });
     }, log);
 
     api.on("didFinishLaunching", () => {

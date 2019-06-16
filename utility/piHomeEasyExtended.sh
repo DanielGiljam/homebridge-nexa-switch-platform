@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-if [[ $(id -u) -ne 0 ]]
-then
-  echo "This script requires administrator privileges."
-  exit 1
-fi
-
 if [[ -z $(which piHomeEasy) ]]
 then
   echo "Could not find 'piHomeEasy' installed on the system."
