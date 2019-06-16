@@ -1,4 +1,6 @@
-import fs from 'fs';
+"use strict";
+
+const fs = require('fs');
 
 class ConfigProcessor {
     constructor(log, config) {
@@ -138,4 +140,4 @@ class ConfigProcessor {
     }
 }
 
-export default ConfigProcessor;
+module.exports = ConfigProcessor;
