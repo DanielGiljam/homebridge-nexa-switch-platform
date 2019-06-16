@@ -1,20 +1,17 @@
 # homebridge-nexa-switch-platform
 
 This is a [Homebridge](https://www.npmjs.com/package/homebridge) plugin for controlling remote controlled power switches manufactured by Nexa.
-It may potentially work with any 'switch -like' device communicating over the HomeEasy protocol.
+It may potentially work with any switch-like device communicating over the HomeEasy protocol.
 
 The prerequisites are:
-- An external radio transmitter that transmits on the 433 MHz frequency connected to your Pi's GPIO
-- piHomeEasy: a software for controlling devices using the HomeEasy protocol ([github.com/nbogojevic/piHomeEasy](https://github.com/nbogojevic/piHomeEasy))
-- Wiring Pi: a library for accessing the Pi's GPIO. The piHomeEasy software depends on it. ([wiringpi.com](http://wiringpi.com))
+- A Raspberry Pi Model A or B (any generation)
+- An external radio transmitter connected to your Pi's GPIO that transmits on the 433 MHz frequency
+- piHomeEasy: a software for communicating with devices using the HomeEasy protocol ([github.com/nbogojevic/piHomeEasy](https://github.com/nbogojevic/piHomeEasy)) --> Check out its GitHub page for details on how to set up
 
 In your **_`config.json`_** -file, the following information needs to be added in order for the Nexa Switch Platform to be set up:
 ```json
 {
   "bridge": {
-    ...
-  },
-  "accessories": {
     ...
   },
   "platforms": [
@@ -24,14 +21,14 @@ In your **_`config.json`_** -file, the following information needs to be added i
       "emitterId": 31415,
       "accessories": [
         {
-          "accessoryName": "Switch",
+          "accessoryName": "Example Switch",
           "accessoryId": 0,
-          "manufacturer": "Nexa",
-          "model": "PER-1500"
+          "manufacturer": "Example Manufacturer",
+          "model": "Example Model",
+          "serialNumber": "XXX000000000"
         }
       ]
-    },
-    ...
+    }
   ]
 }
 ```
