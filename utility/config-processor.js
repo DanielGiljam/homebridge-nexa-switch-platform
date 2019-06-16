@@ -22,7 +22,7 @@ class ConfigProcessor {
         if (invalidProperties.length !== 0) {
             const fallbackConfig = JSON.parse(fs.readFileSync('./misc/fallback-config.json'));
             for (let propertyName of invalidProperties) {
-                this.log(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`);
+                this.log.error(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`);
                 this.config[propertyName] = fallbackConfig[propertyName];
             }
         }
@@ -62,15 +62,15 @@ class ConfigProcessor {
                     if (!invalidAccessories.includes(accessoryIndex)) {
                         switch (propertyName) {
                             case 'accessoryName':
-                                this.log(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Every accessory must have a unique name. Skipping accessory...`);
+                                this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Every accessory must have a unique name. Skipping accessory...`);
                                 invalidAccessories.unshift(accessoryIndex);
                                 break;
                             case 'accessoryId':
-                                this.log(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Skipping accessory...`);
+                                this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Skipping accessory...`);
                                 invalidAccessories.unshift(accessoryIndex);
                                 break;
                             default:
-                                this.log(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Ignoring property...`);
+                                this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Ignoring property...`);
                                 this.config.accessories[accessoryIndex][propertyName] = null; // Resetting faulty but optional properties
                         }
                     }

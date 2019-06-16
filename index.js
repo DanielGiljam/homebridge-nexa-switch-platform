@@ -1,7 +1,8 @@
 "use strict";
 
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+// const util = require('util');
+// const exec = util.promisify(require('child_process').exec);
+const spawn = require('child_process').spawn;
 
 const ConfigProcessor = require('./utility/config-processor');
 const OperationSequencer = require('./utility/operation-sequencer');
@@ -35,9 +36,27 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessoriesToBeRegistered = [];
     this.accessoriesToBeUnregistered = [];
 
-    this.operationSequencer = new OperationSequencer(async (accessoryId, state) => {
-        const { stdout, stderr } = await exec(`sudo piHomeEasy ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
+    this.operationSequencer = new OperationSequencer(/*async (accessoryId, state) => {
+        const { stdout, stderr } = await exec(`sudo ./utility/piHomeEasyExtended.sh ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
         return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout.trim()}', stderr: '${stderr.trim()}'.`;
+    }, */async () => {
+        const queue = arguments;
+        return await new Promise((resolve, reject) => {
+            const process = spawn('./utility/piHomeEasyExtended.sh', [this.config.transmitterPin, this.config.emitterId, ...queue]);
+            process.stdout.on('data', data => this.log(`[piHomeEasyExtended] ${data}`.trim()));
+            process.stderr.on('data', data => this.log.error(`[piHomeEasyExtended] ${data}`.trim()));
+            process.on('close', code => {
+                this.log(`[piHomeEasyExtended] Script finished and closed with code ${code}.`);
+                resolve(code.toString())
+            });
+            process.on('exit', code => {
+                this.log(`[piHomeEasyExtended] Script exited with code ${code}.`);
+                resolve(code.toString())
+            });
+            process.on('error', error => {
+                reject(error)
+            });
+        }).catch(error => throw error);
     }, log);
 
     api.on("didFinishLaunching", () => {

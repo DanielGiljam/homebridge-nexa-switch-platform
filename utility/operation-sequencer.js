@@ -12,7 +12,7 @@ class OperationSequencer {
      */
 
     /**
-     * @param {!Operation} operation
+     * @param {Operation} operation
      * @param {?} log
      */
     constructor(operation, log) {
@@ -27,8 +27,10 @@ class OperationSequencer {
      * @param {...?} opParam Must match what the operation -function expects
      */
     sendOp(...opParam) {
-        this.log(`An operation instance was received and placed ${this.opQueue.push(arguments)}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
-        if (this.execSwitch) this.abortSequence();
+        this.opQueue.push(...arguments);
+        this.log(`An operation instance was received and placed ${this.opQueue.length / arguments.length}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
+        // this.log(`An operation instance was received and placed ${this.opQueue.push(arguments)}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
+        // if (this.execSwitch) this.abortSequence();
         this.refreshTimer();
     }
 
@@ -41,12 +43,12 @@ class OperationSequencer {
         this.referenceTimer.reset();
     }
 
-    abortSequence() {
+    /*abortSequence() {
         this.log('Trying to abort operation sequence execution.');
         this.execSwitch = false;
-    }
+    }*/
 
-    async executeSequence() {
+    /*async executeSequence() {
         const execQueue = this.opQueue.slice(0);
         this.execSwitch = true;
         const refTimer = new ReferenceTimer();
@@ -63,6 +65,18 @@ class OperationSequencer {
         }
         this.log(`Completed operation sequence execution. Elapsed time in execution: ${refTimer.getTime()}ms.`);
         this.execSwitch = false;
+    }*/
+
+    async executeSequence() {
+        if (this.execSwitch) {
+            this.refreshTimer();
+        } else {
+            this.execSwitch = true;
+            const opQueue = this.opQueue.slice(0);
+            this.opQueue.length = 0;
+            await this.operation(...opQueue);
+            this.execSwitch = false;
+        }
     }
 
     get execSwitch() {
@@ -91,7 +105,7 @@ class ReferenceTimer {
         } else return time;
     }
     reset() {
-        this.startTime = Date.now();
+        this.startTime = Date.now()
         this.timeoutIdle = false;
     }
 }
