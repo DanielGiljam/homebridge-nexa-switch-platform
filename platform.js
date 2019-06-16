@@ -155,7 +155,7 @@ NexaSwitchPlatform.prototype.addAccessory = function (accessoryIndex) {
     const accessoryName = "Switch " + accessoryIndex;
     const uuid = UUIDGen.generate(accessoryName);
 
-    const newAccessory = new NexaSwitch(accessoryName, uuid);
+    const newAccessory = new Accessory(accessoryName, uuid);
     newAccessory.on('identify', function (paired, callback) {
         platform.log(newAccessory.displayName, "Identify!!!");
         callback();
