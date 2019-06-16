@@ -36,21 +36,35 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessoriesToBeRegistered = [];
     this.accessoriesToBeUnregistered = [];
 
+    this.stateMonitor = [];
+    for (let index in this.config.accessories) {
+        this.stateMonitor.push({
+            accessoryId: index,
+            state: undefined
+        });
+    }
+
     this.operationSequencer = new OperationSequencer(/*async (accessoryId, state) => {
         const { stdout, stderr } = await exec(`sudo ./utility/piHomeEasyExtended.sh ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
         return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout.trim()}', stderr: '${stderr.trim()}'.`;
-    }, */async (...queue) => {
+    }, */async (queue) => {
         return await new Promise((resolve, reject) => {
-            const process = spawn('./../homebridge-nexa-switch-platform/utility/piHomeEasyExtended.sh', [this.config.transmitterPin, this.config.emitterId, ...queue]);
+            const process = spawn(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/utility/piHomeEasyExtended.sh' */'./utility/piHomeEasyExtended.sh',
+              [
+                this.config.transmitterPin,
+                this.config.emitterId,
+                ...this.manufactureArguments(this.optimizeOperation(queue))
+              ]
+            );
             process.stdout.on('data', data => this.log(`[piHomeEasyExtended] ${data}`.trim()));
             process.stderr.on('data', data => this.log.error(`[piHomeEasyExtended] ${data}`.trim()));
             process.on('close', code => {
                 this.log(`[piHomeEasyExtended] Script finished and closed with code ${code}.`);
-                resolve(code.toString())
+                resolve(code.toString());
             });
             process.on('exit', code => {
                 this.log(`[piHomeEasyExtended] Script exited with code ${code}.`);
-                resolve(code.toString())
+                resolve(code.toString());
             });
             process.on('error', error => {
                 reject(error)
@@ -146,13 +160,6 @@ NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
     this.accessories.push(accessory);
 };
 
-NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
-
-    const state = on ? 'on' : 'off';
-    this.operationSequencer.sendOp(this.accessoryId, state);
-    return next();
-};
-
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
 
     for (let index in this.accessoriesToBeUnregistered) {
@@ -162,4 +169,72 @@ NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
         }
     }
     return false;
+};
+
+NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
+
+    const state = !!on;
+    this.operationSequencer.sendOp(this.accessoryId, state);
+    this.stateMonitor.find(element => element.accessoryId === this.accessoryId).state = state;
+    return next();
+};
+
+NexaSwitchPlatform.prototype.optimizeOperation = function(queue) {
+
+    const deltaState = this.stateMonitor.slice(0);
+    for (let operation of queue) this.stateMonitor.find(element => element.accessoryId === operation.accessoryId).state = operation.state;
+
+    this.log(`State ${this.stateMonitor.toString()}, DeltaState: ${deltaState.toString()}`);
+
+    const changed = [];
+    const unchanged = [];
+
+    for (let index in deltaState) {
+        if (this.stateMonitor[index].state !== deltaState[index].state) changed.push(deltaState[index]);
+        else unchanged.push(deltaState[index]);
+    }
+
+    this.log(`Changed: ${changed.toString()}, Unhanged: ${unchanged.toString()}`);
+
+    if (changed.length <= 2) return this.manufactureArguments(changed);
+
+    let stateZero;
+
+    if (unchanged.length !== 0) {
+        stateZero = unchanged[0].state;
+        for (let stateObject of unchanged) if (stateObject.state !== stateZero) stateZero = null;
+    } else {
+        stateZero = true;
+    }
+
+    const changedFiltered = changed.filter(state => state === stateZero);
+    const changedFilteredInverted = changed.filter(state => state !== stateZero);
+    console.log(`ChangedFiltered: '${changedFiltered.toString()}'`);
+    console.log(`ChangedFiltered: '${changedFilteredInverted.toString()}'`);
+
+    const quota = changedFiltered.length / changed.length;
+    console.log(`Quota: ${quota.toFixed(2)}`);
+
+    if (quota === 1) {
+        return changed;
+    } else if (quota > 0.5) {
+        return changedFilteredInverted.unshift({
+            accessoryId: -1, // TODO: check if it's really -1
+            state: stateZero
+        });
+    } else if (quota === 0.5) {
+        return changedFiltered.unshift({
+            accessoryId: -1, // TODO: check if it's really -1
+            state: !stateZero
+        });
+    } else {
+        return changedFiltered.unshift({
+            accessoryId: -1, // TODO: check if it's really -1
+            state: !stateZero
+        });
+    }
+};
+
+NexaSwitchPlatform.prototype.manufactureArguments = function(queue) {
+
 };

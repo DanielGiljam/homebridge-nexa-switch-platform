@@ -1,6 +1,6 @@
 "use strict";
 
-const SEQUENCE_TIMEOUT = 1000;
+const SEQUENCE_TIMEOUT = 2;
 
 class OperationSequencer {
 
@@ -27,14 +27,13 @@ class OperationSequencer {
      * @param {...?} opParam Must match what the operation -function expects
      */
     sendOp(...opParam) {
-        this.opQueue.push(...arguments);
-        this.log(`An operation instance was received and placed ${this.opQueue.length / arguments.length}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
+        this.log(`An operation instance was received and placed ${this.opQueue.push(arguments)}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
         // this.log(`An operation instance was received and placed ${this.opQueue.push(arguments)}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
         // if (this.execSwitch) this.abortSequence();
         this.refreshTimer();
     }
 
-    refreshTimer() {
+    refreshTimer(sequenceTimeout) {
         try {
             this.sequenceTimer.refresh();
         } catch (error) {
@@ -74,7 +73,7 @@ class OperationSequencer {
             this.execSwitch = true;
             const opQueue = this.opQueue.slice(0);
             this.opQueue.length = 0;
-            await this.operation(...opQueue);
+            await this.operation(opQueue);
             this.execSwitch = false;
         }
     }
