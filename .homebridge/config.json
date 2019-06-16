@@ -15,7 +15,8 @@
 					"name": "Example Switch",
 					"manufacturer": "Example Manufacturer",
 					"model": "Example Model",
-					"serialNumber": "693-29-284"
+					"serialNumber": "693-29-284",
+					"accessoryId": 0
 				}
 			]
 		}
