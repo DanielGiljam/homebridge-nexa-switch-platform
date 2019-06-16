@@ -58,7 +58,7 @@ class ConfigProcessor {
 
             if (invalidProperties.length !== 0) {
                 const whichAccessory = ConfigProcessor.getPrintableArrayIndex(accessoryIndex);
-                for (let propertyName in invalidProperties) {
+                for (let propertyName of invalidProperties) {
                     if (!invalidAccessories.includes(accessoryIndex)) {
                         switch (propertyName) {
                             case 'accessoryName':
@@ -97,21 +97,20 @@ class ConfigProcessor {
 
         for (let accessoryIndex in this.config.accessories) {
             if (this.config.accessories[accessoryIndex].accessoryId == null) {
-                let accessoryId = accessoryIndex;
+                let accessoryId = parseInt(accessoryIndex);
                 let maxLaps = 15;
-                while (accessoryIds.includes(accessoryId) && maxLaps >= 0) {
+                while (accessoryIds.includes(accessoryId) && maxLaps > 0) {
                     if (accessoryId === 15) accessoryId = 0;
                     else accessoryId++;
                     maxLaps--;
                 }
-                if (accessoryIds.includes(accessoryId)) {
-                    this.log.error('FATAL ERROR! Overlapping accessoryIds! Unable to add/restore any accessories!'); // TODO: This error does an unnecessary double-check and will be removed after testing.
-                    return;
-                }
+                accessoryIds.push(accessoryId);
                 this.config.accessories[accessoryIndex].accessoryId = accessoryId;
                 validatedAccessories[accessoryId] = this.config.accessories[accessoryIndex];
             }
         }
+
+        this.log(validatedAccessories);
 
         this.config.accessories = validatedAccessories;
 

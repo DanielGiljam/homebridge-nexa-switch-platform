@@ -35,8 +35,8 @@ function NexaSwitchPlatform(log, config, api) {
     this.accessoriesToBeRegistered = [];
     this.accessoriesToBeUnregistered = [];
 
-    this.operationSequencer = new OperationSequencer(async function (accessoryId, state) {
-        const { stdout, stderr } = await exec(`sudo piHomeEasy ${this.transmitterPin} ${this.emitterId} ${accessoryId} ${state}`);
+    this.operationSequencer = new OperationSequencer(async (accessoryId, state) => {
+        const { stdout, stderr } = await exec(`sudo piHomeEasy ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
         return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout}', stderr: '${stderr}'.`;
     }, log);
 
@@ -66,25 +66,11 @@ function NexaSwitchPlatform(log, config, api) {
 NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
     let uuid = UUIDGen.generate(accessoryInformation.accessoryName);
-    const cachedAccessory = this.accessoryRegistered(uuid, accessoryInformation);
-    if (cachedAccessory) {
-        const propertyTests = [
-            accessoryInformation.accessoryName === cachedAccessory.context.accessoryName,
-            accessoryInformation.accessoryId === cachedAccessory.context.accessoryId,
-            accessoryInformation.manufacturer === cachedAccessory.context.manufacturer,
-            accessoryInformation.model === cachedAccessory.context.model,
-            accessoryInformation.serialNumber === cachedAccessory.context.serialNumber
-        ];
-        if (propertyTests === true) {
-            this.log(`Accessory '${accessoryInformation.accessoryName} (${accessoryInformation.manufacturer} ${accessoryInformation.model})' already added...`);
-            return;
-        } else {
-            this.log(`Accessory '${accessoryInformation.accessoryName} (${accessoryInformation.manufacturer} ${accessoryInformation.model})' has modified properties in config. Applying...`);
-            this.accessoriesToBeUnregistered.push(cachedAccessory);
-        }
-    } else {
-        this.log(`Adding accessory '${accessoryInformation.accessoryName} (${accessoryInformation.manufacturer} ${accessoryInformation.model})'...`);
+    if (this.accessoryRegistered(uuid)) {
+        return;
     }
+
+    this.log(`Adding accessory '${accessoryInformation.accessoryName}'...`);
 
     const accessory = new PlatformAccessory(accessoryInformation.accessoryName, uuid);
 
@@ -111,7 +97,25 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
 NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
 
-    this.log(`Restoring accessory '${accessory.context.name} (${accessory.context.manufacturer} ${accessory.context.model})'...`);
+    this.log(`Restoring accessory '${accessory.context.name}'...`);
+
+    const accessoryInformation = this.config.accessories.find(element => {
+        return (element != null) ? element.accessoryName === accessory.context.name : false
+    });
+
+    if (accessoryInformation != null) {
+        accessory.context.name = accessoryInformation.accessoryName;
+        accessory.context.accessoryId = accessoryInformation.accessoryId;
+
+        accessory.context.manufacturer = (accessoryInformation.manufacturer != null) ? accessoryInformation.manufacturer : 'N/A';
+        accessory.context.model = (accessoryInformation.model != null) ? accessoryInformation.model : 'N/A';
+        accessory.context.serialNumber = (accessoryInformation.serialNumber != null) ? accessoryInformation.serialNumber : 'N/A';
+    }
+
+    accessory.getService(Service.AccessoryInformation)
+        .setCharacteristic(Characteristic.Manufacturer, accessory.context.manufacturer)
+        .setCharacteristic(Characteristic.Model, accessory.context.model)
+        .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber);
 
     const switchService = accessory.getService(Service.Switch);
     switchService.getCharacteristic(Characteristic.On)
@@ -133,7 +137,8 @@ NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
 
     for (let index in this.accessoriesToBeUnregistered) {
         if (this.accessoriesToBeUnregistered[index].UUID === uuid) {
-            return this.accessoriesToBeUnregistered.splice(index, 1)[0];
+            this.accessoriesToBeUnregistered.splice(index, 1);
+            return true;
         }
     }
     return false;
