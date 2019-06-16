@@ -27,8 +27,8 @@ class OperationSequencer {
      * @param {...?} opParam Must match what the operation -function expects
      */
     sendOp(...opParam) {
-        if (this.opQueue.length === 0 && this.execSwitch) this.abortSequence();
         this.log(`An operation instance was received and placed ${this.opQueue.push(arguments)}. in the queue. Timer: ${this.referenceTimer.getTime()}.`);
+        if (this.execSwitch) this.abortSequence();
         this.refreshTimer();
     }
 
@@ -50,10 +50,11 @@ class OperationSequencer {
         const execQueue = this.opQueue;
         this.execSwitch = true;
         const refTimer = new ReferenceTimer();
-        const timeDiff = 0;
+        let timeDiff = 0;
         for (let opInstance in execQueue) {
             if (this.execSwitch) {
                 this.log(await this.operation(...execQueue[opInstance]).then(result => result) + ` Elapsed time in execution: total: ${refTimer.getTime()}ms, diff: ${refTimer.getTime() - timeDiff}ms.`);
+                timeDiff = refTimer.getTime();
                 this.opQueue.splice(opInstance, 1);
             } else {
                 this.log(`Operation sequence execution was aborted. Elapsed time in execution: ${refTimer.getTime()}ms.`);
@@ -61,6 +62,15 @@ class OperationSequencer {
             }
         }
         this.log(`Completed operation sequence execution. Elapsed time in execution: ${refTimer.getTime()}ms.`);
+        this.execSwitch = false;
+    }
+
+    get execSwitch() {
+        return this.executionSwitch;
+    }
+
+    set execSwitch(value) {
+        this.executionSwitch = !!value;
     }
 }
 
@@ -76,7 +86,7 @@ class ReferenceTimer {
         const time = Date.now() - this.startTime;
         if (this.timeoutMonitor) {
             if (this.timeoutIdle) return 'inactive (never initialized)';
-            if (time >= SEQUENCE_TIMEOUT) return 'inactive (complete)';
+            if (time >= SEQUENCE_TIMEOUT) return time + 'ms (inactive/complete)';
             return time + 'ms';
         } else return time;
     }
