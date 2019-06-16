@@ -1,6 +1,6 @@
 {
   "name": "homebridge-nexa-switch-platform",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "This is a Homebridge plugin for controlling remote controlled power switches manufactured by Nexa.",
   "main": "index.js",
   "scripts": {
