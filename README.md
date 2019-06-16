@@ -20,16 +20,14 @@ In your **_`config.json`_** -file, the following information needs to be added i
   "platforms": [
     {
       "platform": "NexaSwitchPlatform",
-      "name": "Nexa Switch Platform",
       "transmitterPin": 0,
       "emitterId": 31415,
-      "accessoryInformation": [
+      "accessories": [
         {
-          "name": "Switch",
+          "accessoryName": "Switch",
+          "accessoryId": 0,
           "manufacturer": "Nexa",
-          "model": "PER-1500",
-          "serialNumber": "481-48-592",
-          "accessoryId": 0
+          "model": "PER-1500"
         }
       ]
     },

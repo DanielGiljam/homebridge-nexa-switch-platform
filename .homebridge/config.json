@@ -1,25 +1,23 @@
 {
-	"bridge": {
-	  "name": "Example Homebridge Server",
-	  "username": "24:64:F3:C1:A3:A1",
-	  "port": 51926,
-	  "pin": "602-23-679"
+  "bridge": {
+    "name": "Example Homebridge Server",
+    "username": "24:64:F3:C1:A3:A1",
+    "port": 51926,
+    "pin": "602-23-679"
   },
-	"platforms": [
-		{
-			"platform": "NexaSwitchPlatform",
-			"name": "Nexa Switch Platform",
-			"transmitterPin": 0,
-			"emitterId": 31415,
-			"accessoryInformation": [
-				{
-					"name": "Example Switch",
-					"manufacturer": "Example Manufacturer",
-					"model": "Example Model",
-					"serialNumber": "693-29-284",
-					"accessoryId": 0
-				}
-			]
-		}
-	]
+  "platforms": [
+    {
+      "platform": "NexaSwitchPlatform",
+      "transmitterPin": 0,
+      "emitterId": 31415,
+      "accessories": [
+        {
+          "accessoryName": "Example Switch",
+          "accessoryId": 0,
+          "manufacturer": "Example Manufacturer",
+          "model": "Example Model"
+        }
+      ]
+    }
+  ]
 }

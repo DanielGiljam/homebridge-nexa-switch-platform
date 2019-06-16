@@ -1,6 +1,9 @@
 "use strict";
 
 const exec = require('child_process').exec;
+
+const ConfigProcessor = require('./utility/config-processor');
+
 let PlatformAccessory, Characteristic, Service, UUIDGen, Logger;
 
 module.exports = homebridge => {
@@ -19,24 +22,12 @@ module.exports = homebridge => {
 
 function NexaSwitchPlatform(log, config, api) {
 
-    if (log == null) throw new Error("Log parameter neglected when the NexaSwitchPlatform constructor was called!");
-    else this.log = log;
-
-    if (config != null && this.validateConfig(config)) {
-        this.config = config;
-    } else {
-        this.config = { platform: 'NexaSwitchPlatform', name: 'Nexa Switch Platform', transmitterPin: 0, emitterId: 31415, accessoryInformation: [] };
-        this.log(
-            "Could not read Homebridge configuration. " +
-            "Values default to platform: 'NexaSwitchPlatform', " +
-            "name: 'Nexa Switch Platform', " +
-            "transmitter pin: '0', " +
-            "emitter id: '31415' and 0 accessories.");
-    }
-
     if (api == null) throw new Error(
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
         "Check the version of your Homebridge installation. It may be outdated.");
+
+    this.config = new ConfigProcessor(log, config).validateConfig();
+    this.log = log;
 
     this.accessories = [];
     this.accessoriesToBeRegistered = [];
@@ -44,8 +35,8 @@ function NexaSwitchPlatform(log, config, api) {
 
     api.on("didFinishLaunching", () => {
         this.accessoriesToBeUnregistered = this.accessories;
-        for (let index in this.config.accessoryInformation) {
-            this.addAccessory(this.config.accessoryInformation[index]);
+        for (let index in this.config.accessories) {
+            this.addAccessory(this.config.accessories[index]);
         }
         if (this.accessoriesToBeRegistered.length !== 0) {
             api.registerPlatformAccessories(
@@ -67,18 +58,20 @@ function NexaSwitchPlatform(log, config, api) {
 
 NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
 
-    const uuid = UUIDGen.generate(accessoryInformation.name);
+    const uuid = UUIDGen.generate(accessoryInformation.accessoryName);
 
     if (this.accessoryRegistered(uuid)) {
-        this.log(`Accessory '${accessoryInformation.name} (${accessoryInformation.manufacturer} ${accessoryInformation.model})' already added...`);
+        this.log(`Accessory '${accessoryInformation.accessoryName} (${accessoryInformation.manufacturer} ${accessoryInformation.model})' already added...`);
         return;
     }
 
-    this.log(`Adding accessory '${accessoryInformation.name} (${accessoryInformation.manufacturer} ${accessoryInformation.model})'...`);
+    this.log(`Adding accessory '${accessoryInformation.accessoryName} (${accessoryInformation.manufacturer} ${accessoryInformation.model})'...`);
 
-    const accessory = new PlatformAccessory(accessoryInformation.name, uuid);
+    const accessory = new PlatformAccessory(accessoryInformation.accessoryName, uuid);
 
-    accessory.context.name = accessoryInformation.name;
+    accessory.context.name = accessoryInformation.accessoryName;
+    // TODO: Test what it looks like when manufacturer, model and serial number -fields are left blank. Decide whether and how to implement the fields.
+    /*
     accessory.context.manufacturer = accessoryInformation.manufacturer;
     accessory.context.model = accessoryInformation.model;
     accessory.context.accessoryId = accessoryInformation.accessoryId;
@@ -87,39 +80,40 @@ NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
         .setCharacteristic(Characteristic.Manufacturer, accessoryInformation.manufacturer)
         .setCharacteristic(Characteristic.Model, accessoryInformation.model)
         .setCharacteristic(Characteristic.SerialNumber, accessoryInformation.serialNumber);
+    */
 
-    const switchService = accessory.addService(Service.Switch, accessoryInformation.name);
+    const switchService = accessory.addService(Service.Switch, accessoryInformation.accessoryName);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ 
+        .on("set", this.setSwitchOnCharacteristic.bind({
           log: this.log,
           transmitterPin: this.config.transmitterPin,
           emitterId: this.config.emitterId,
-          accessoryName: accessoryInformation.name,
+          accessoryName: accessoryInformation.accessoryName,
           accessoryId: accessoryInformation.accessoryId
         }));
-        
+
     this.accessoriesToBeRegistered.push(accessory);
 };
 
 NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
-  
+
     this.log(`Restoring accessory '${accessory.context.name} (${accessory.context.manufacturer} ${accessory.context.model})'...`);
-    
+
     const switchService = accessory.getService(Service.Switch);
     switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({ 
+        .on("set", this.setSwitchOnCharacteristic.bind({
           log: this.log,
           transmitterPin: this.config.transmitterPin,
           emitterId: this.config.emitterId,
           accessoryName: accessory.context.name,
           accessoryId: accessory.context.accessoryId
         }));
-        
+
     this.accessories.push(accessory);
 };
 
 NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
-  
+
     const state = on ? 'on' : 'off';
     exec(`sudo piHomeEasy ${this.transmitterPin} ${this.emitterId} ${this.accessoryId} ${state}`, (error, stdout, stderr) => {
         if (error) {
@@ -132,58 +126,8 @@ NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
     return next();
 };
 
-NexaSwitchPlatform.prototype.validateConfig = function(config) {
-  
-    const platformSet = config.platform != null && typeof config.platform === 'string';
-    const nameSet = config.name != null && typeof config.name === 'string';
-    
-    // transmitterPin is not required in the config to enhance backwards compatibility
-    let transmitterPinSet = this.config.transmitterPin != null && typeof this.config.transmitterPin === 'number' && this.config.transmitterPin >= 0 && this.config.transmitterPin <= 16;
-    if (this.config.transmitterPin == null) {
-      this.config.transmitterPin = 0;
-      transmitterPinSet = true;
-    }
-    
-    const emitterIdSet = config.emitterId != null && typeof config.emitterId === 'number' && config.emitterId >= 1 && config.emitterId <= 67108862;
-    
-    let accessoryInformationSet = config.accessoryInformation != null;
-    if (accessoryInformationSet) {
-      
-        for (let index in config.accessoryInformation) {
-            const accessoryInformation = config.accessoryInformation[index];
-            const nameSet = accessoryInformation.name != null && typeof accessoryInformation.name === 'string';
-            const manufacturerSet = accessoryInformation.manufacturer != null && typeof accessoryInformation.manufacturer === 'string';
-            const modelSet = accessoryInformation.model != null && typeof accessoryInformation.model === 'string';
-            const serialNumberSet = accessoryInformation.serialNumber != null && typeof accessoryInformation.serialNumber === 'string';
-            
-            // accessoryId is not required in the config to enhance backwards compatibility
-            let accessoryIdSet = accessoryInformation.accessoryId != null && typeof accessoryInformation.accessoryId === 'number' && accessoryInformation.accessoryId >= 0 && accessoryInformation.accessoryId <= 15;
-            if (accessoryInformation.accessoryId == null) {
-                const accessoryIds = [];
-                for (let accessoryIdIndex in this.config.accessoryInformation) {
-                    if (this.config.accessoryInformation[accessoryIdIndex].accessoryId != null && typeof this.config.accessoryInformation.accessoryId === 'number' && this.config.accessoryInformation.accessoryId >= 0 && this.config.accessoryInformation.accessoryId <= 15)
-                        accessoryIds.push(this.config.accessoryInformation[accessoryIdIndex].accessoryId);
-                }
-                let accessoryIndex = index;
-                while (accessoryIds.includes(accessoryIndex))
-                    accessoryIndex++;
-                if (accessoryIndex <= 15) {
-                    this.config.accessoryInformation[index].recieverId = accessoryIndex;
-                    accessoryIdSet = true;
-                }
-            }
-            
-            accessoryInformationSet = nameSet && manufacturerSet && modelSet && serialNumberSet && accessoryIdSet;
-            if (!accessoryInformationSet) break;
-        }
-        
-    }
-    
-    return platformSet && nameSet && emitterIdSet && accessoryInformationSet;
-};
-
 NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
-  
+
     for (let index in this.accessoriesToBeUnregistered) {
         if (this.accessoriesToBeUnregistered[index].UUID === uuid) {
             this.accessoriesToBeUnregistered.splice(index, 1);
