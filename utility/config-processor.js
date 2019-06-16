@@ -110,8 +110,6 @@ class ConfigProcessor {
             }
         }
 
-        this.log(validatedAccessories);
-
         this.config.accessories = validatedAccessories;
 
         return this.config;
