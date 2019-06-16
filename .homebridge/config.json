@@ -8,7 +8,7 @@
 	"platforms": [
 		{
 			"platform": "NexaSwitchPlatform",
-			"name": "NEXA Switch Platform",
+			"name": "Nexa Switch Platform",
 			"controllerPort": 51927,
 			"emitterId": 31415,
 			"accessoryInformation": [
