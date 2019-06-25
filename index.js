@@ -16,194 +16,193 @@ limitations under the License.
 
 */
 
-"use strict";
+"use strict"
 
-// const util = require('util');
-// const exec = util.promisify(require('child_process').exec);
-const fs = require('fs');
-const spawn = require('child_process').spawn;
+const fs = require("fs")
+const spawn = require("child_process").spawn
 
-const OperationSequencer = require('./utility/operation-sequencer');
+const OperationSequencer = require("./utility/operation-sequencer")
 
-let PlatformAccessory, Characteristic, Service, UUIDGen, Logger;
+const BROADCAST_ID = -1
+
+let PlatformAccessory, Characteristic, Service, UUIDGen, Logger
 
 module.exports = homebridge => {
 
-    PlatformAccessory = homebridge.platformAccessory;
+    PlatformAccessory = homebridge.platformAccessory
 
-    Characteristic = homebridge.hap.Characteristic;
-    Service = homebridge.hap.Service;
+    Characteristic = homebridge.hap.Characteristic
+    Service = homebridge.hap.Service
 
-    UUIDGen = homebridge.hap.uuid;
-    Logger = homebridge.Logger;
+    UUIDGen = homebridge.hap.uuid
+    Logger = homebridge.Logger
 
-    homebridge.registerPlatform("homebridge-nexa-switch-platform", "NexaSwitchPlatform", NexaSwitchPlatform, true);
+    homebridge.registerPlatform("homebridge-nexa-switch-platform", "NexaSwitchPlatform", NexaSwitchPlatform, true)
 
-};
+}
 
 function NexaSwitchPlatform(log, config, api) {
 
     if (api == null) throw new Error(
         "API parameter was not passed when the NexaSwitchPlatform constructor was called! " +
-        "Check the version of your Homebridge installation. It may be outdated.");
+        "Check the version of your Homebridge installation. It may be outdated.")
 
-    this.config = this.validateConfig(config);
-    this.log = log;
+    this.config = this.validateConfig(config)
+    this.log = log
 
-    this.accessories = [];
-    this.accessoriesToBeRegistered = [];
-    this.accessoriesToBeUnregistered = [];
+    this.accessories = []
+    this.accessoriesToBeRegistered = []
+    this.accessoriesToBeUnregistered = []
 
-    this.stateMonitor = [];
+    this.stateMonitor = []
     for (let index in this.config.accessories) {
         this.stateMonitor.push({
-            accessoryId: index,
+            accessoryId: this.config.accessories[index].accessoryId,
             state: undefined
-        });
+        })
     }
 
-    this.operationSequencer = new OperationSequencer(/*async (accessoryId, state) => {
-        const { stdout, stderr } = await exec(`sudo ./utility/piHomeEasyExtended.sh ${this.config.transmitterPin} ${this.config.emitterId} ${accessoryId} ${state}`);
-        return `Completed operation. accessoryId: '${accessoryId}', state: '${state}', stdout: '${stdout.trim()}', stderr: '${stderr.trim()}'.`;
-    }, */async (queue) => {
+    this.operationSequencer = new OperationSequencer(async (queue) => {
         return await new Promise((resolve, reject) => {
-            const process = spawn(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/scripts/piHomeEasyExtended.sh' */'./scripts/piHomeEasyExtended.sh',
-              [
-                this.config.transmitterPin,
-                this.config.emitterId,
-                ...this.manufactureArguments(this.optimizeOperation(queue))
-              ]
-            );
-            process.stdout.on('data', data => this.log(`[piHomeEasyExtended] ${data}`.trim()));
-            process.stderr.on('data', data => this.log.error(`[piHomeEasyExtended] ${data}`.trim()));
-            process.on('close', code => {
-                this.log(`[piHomeEasyExtended] Script finished and closed with code ${code}.`);
-                resolve(code.toString());
-            });
-            process.on('exit', code => {
-                this.log(`[piHomeEasyExtended] Script exited with code ${code}.`);
-                resolve(code.toString());
-            });
-            process.on('error', error => {
+            const process = spawn("../homebridge-nexa-switch-platform/scripts/piHomeEasyExtended.sh",
+                [
+                    this.config.transmitterPin,
+                    this.config.emitterId,
+                    ...this.manufactureArguments(this.optimizeOperation(queue))
+                ]
+            )
+            process.stdout.on("data", data => this.log(`[piHomeEasyExtended] ${data}`.trim()))
+            process.stderr.on("data", data => this.log.error(`[piHomeEasyExtended] ${data}`.trim()))
+            process.on("close", code => {
+                this.log(`[piHomeEasyExtended] Script finished and closed with code ${code}.`)
+                resolve(code.toString())
+            })
+            process.on("exit", code => {
+                this.log(`[piHomeEasyExtended] Script exited with code ${code}.`)
+                resolve(code.toString())
+            })
+            process.on("error", error => {
                 reject(error)
-            });
-        }).catch(error => { throw error });
-    }, log);
+            })
+        }).catch(error => {
+            throw error
+        })
+    }, log)
 
     api.on("didFinishLaunching", () => {
-        this.accessoriesToBeUnregistered = this.accessories;
+        this.accessoriesToBeUnregistered = this.accessories
         for (let index in this.config.accessories) {
-            this.addAccessory(this.config.accessories[index]);
+            this.addAccessory(this.config.accessories[index])
         }
         if (this.accessoriesToBeRegistered.length !== 0) {
             api.registerPlatformAccessories(
                 "homebridge-nexa-switch-platform",
                 "NexaSwitchPlatform",
-                this.accessoriesToBeRegistered);
+                this.accessoriesToBeRegistered)
         }
         if (this.accessoriesToBeUnregistered.length !== 0) {
-            this.log(`Removing ${this.accessoriesToBeUnregistered.length} deprecated accessories...`);
+            this.log(`Removing ${this.accessoriesToBeUnregistered.length} deprecated accessories...`)
             api.unregisterPlatformAccessories(
                 "homebridge-nexa-switch-platform",
                 "NexaSwitchPlatform",
-                this.accessoriesToBeUnregistered);
+                this.accessoriesToBeUnregistered)
         }
-        this.log("Finished launching...");
-    });
+        this.log("Finished launching...")
+    })
 
 }
 
-NexaSwitchPlatform.prototype.validateConfig = function(config) {
+NexaSwitchPlatform.prototype.validateConfig = function (config) {
 
-    const validateProperty = function(property, expectedType) {
-        return property != null && typeof property === expectedType;
-    };
-    const validateNumber = function(number, min, max) {
-        return this.validateProperty(number, 'number') && number >= min && number <= max;
-    };
-    const validateOptionalProperty = function(property, expectedType) {
-        return property == null || this.validateProperty(property, expectedType);
-    };
-    const validateOptionalNumber = function(number, min, max) {
-        return number == null || this.validateNumber(number, min, max);
-    };
-    const getPrintableArrayIndex = function(index) {
-        index++;
+    const validateProperty = function (property, expectedType) {
+        return property != null && typeof property === expectedType
+    }
+    const validateNumber = function (number, min, max) {
+        return validateProperty(number, "number") && number >= min && number <= max
+    }
+    const validateOptionalProperty = function (property, expectedType) {
+        return property == null || validateProperty(property, expectedType)
+    }
+    const validateOptionalNumber = function (number, min, max) {
+        return number == null || validateNumber(number, min, max)
+    }
+    const getPrintableArrayIndex = function (index) {
+        index++
         switch (index) {
             case 0:
-                return index += 'st';
+                return index += "st"
             case 1:
-                return index += 'nd';
+                return index += "nd"
             case 2:
-                return index += 'rd';
+                return index += "rd"
             default:
-                return index += 'th';
+                return index += "th"
         }
-    };
+    }
 
     // Validating the platform's parameters...
 
-    const invalidProperties = [];
+    const invalidProperties = []
 
     // transmitterPin: must be a number, min. 0, max. 16
-    if (!validateNumber(config.transmitterPin, 0, 16)) invalidProperties.push('transmitterPin');
+    if (!validateNumber(config.transmitterPin, 0, 16)) invalidProperties.push("transmitterPin")
 
     // emitterId: must be a number, min. 1, max. 67108862
-    if (!validateNumber(config.emitterId, 1, 67108862)) invalidProperties.push('emitterId');
+    if (!validateNumber(config.emitterId, 1, 67108862)) invalidProperties.push("emitterId")
 
     if (invalidProperties.length !== 0) {
-        const fallbackConfig = JSON.parse(`${fs.readFileSync(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/miscellaneous/fallback-config.json' */'./miscellaneous/fallback-config.json')}`);
+        const fallbackConfig = JSON.parse(`${fs.readFileSync(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/miscellaneous/fallback-config.json' */"./miscellaneous/fallback-config.json")}`)
         for (let propertyName of invalidProperties) {
-            this.log.error(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`);
-            config[propertyName] = fallbackConfig[propertyName];
+            this.log.error(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`)
+            config[propertyName] = fallbackConfig[propertyName]
         }
     }
 
     // If the config's list of accessories' length surpasses the HomeEasy protocol's accessory limit, then the validation returns false.
     if (config.accessories.length > 16) {
-        this.log.error('Amount of accessories declared in the config exceeds the maximum amount of accessories allowed (16). Unable to add/restore any accessories.');
-        config.accessories = [];
-        return config;
+        this.log.error("Amount of accessories declared in the config exceeds the maximum amount of accessories allowed (16). Unable to add/restore any accessories.")
+        config.accessories = []
+        return config
     }
 
     // Spotting out invalid accessories...
-    const invalidAccessories = [];
+    const invalidAccessories = []
     for (let accessoryIndex in config.accessories) {
 
-        const accessory = config.accessories[accessoryIndex];
-        const invalidProperties = [];
+        const accessory = config.accessories[accessoryIndex]
+        const invalidProperties = []
 
         // accessoryName: must be a string
-        if (!validateProperty(accessory.accessoryName, 'string')) invalidProperties.push('accessory');
+        if (!validateProperty(accessory.accessoryName, "string")) invalidProperties.push("accessory")
 
         // accessoryId: if provided, must be a number, min. 0, max. 15
-        if (!validateOptionalNumber(accessory.accessoryId, 0, 15)) invalidProperties.push('accessoryId');
+        if (!validateOptionalNumber(accessory.accessoryId, 0, 15)) invalidProperties.push("accessoryId")
 
         // manufacturer: if provided, must be a string
-        if (!validateOptionalProperty(accessory.manufacturer, 'string')) invalidProperties.push('manufacturer');
+        if (!validateOptionalProperty(accessory.manufacturer, "string")) invalidProperties.push("manufacturer")
 
         // model: if provided, must be a string
-        if (!validateOptionalProperty(accessory.model, 'string')) invalidProperties.push('model');
+        if (!validateOptionalProperty(accessory.model, "string")) invalidProperties.push("model")
 
         // serialNumber: if provided, must be a string
-        if (!validateOptionalProperty(accessory.serialNumber, 'string')) invalidProperties.push('serialNumber');
+        if (!validateOptionalProperty(accessory.serialNumber, "string")) invalidProperties.push("serialNumber")
 
         if (invalidProperties.length !== 0) {
-            const whichAccessory = getPrintableArrayIndex(accessoryIndex);
+            const whichAccessory = getPrintableArrayIndex(accessoryIndex)
             for (let propertyName of invalidProperties) {
                 if (!invalidAccessories.includes(accessoryIndex)) {
                     switch (propertyName) {
-                        case 'accessoryName':
-                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Every accessory must have a unique name. Skipping accessory...`);
-                            invalidAccessories.unshift(accessoryIndex);
-                            break;
-                        case 'accessoryId':
-                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Skipping accessory...`);
-                            invalidAccessories.unshift(accessoryIndex);
-                            break;
+                        case "accessoryName":
+                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Every accessory must have a unique name. Skipping accessory...`)
+                            invalidAccessories.unshift(accessoryIndex)
+                            break
+                        case "accessoryId":
+                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Skipping accessory...`)
+                            invalidAccessories.unshift(accessoryIndex)
+                            break
                         default:
-                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Ignoring property...`);
-                            config.accessories[accessoryIndex][propertyName] = null; // Resetting faulty but optional properties
+                            this.log.error(`Could not read property '${propertyName}' of the ${whichAccessory} accessory. Ignoring property...`)
+                            config.accessories[accessoryIndex][propertyName] = null // Resetting faulty but optional properties
                     }
                 }
             }
@@ -212,185 +211,228 @@ NexaSwitchPlatform.prototype.validateConfig = function(config) {
 
     // Removing the invalid accessories...
     for (let accessoryIndex of invalidAccessories) {
-        config.accessories.splice(accessoryIndex, 1);
+        config.accessories.splice(accessoryIndex, 1)
     }
 
     // Assigning ids to all accessories...
-    const validatedAccessories = [];
-    const accessoryIds = [];
+    const validatedAccessories = []
+    const accessoryIds = []
 
     // Extracting all accessories with specified accessoryId's...
     for (let accessory of config.accessories) {
         if (accessory.accessoryId != null) {
-            validatedAccessories[accessory.accessoryId] = accessory;
-            accessoryIds.push(accessory.accessoryId);
+            validatedAccessories[accessory.accessoryId] = accessory
+            accessoryIds.push(accessory.accessoryId)
         }
     }
 
     for (let accessoryIndex in config.accessories) {
         if (config.accessories[accessoryIndex].accessoryId == null) {
-            let accessoryId = parseInt(accessoryIndex);
-            let maxLaps = 15;
+            let accessoryId = parseInt(accessoryIndex)
+            let maxLaps = 15
             while (accessoryIds.includes(accessoryId) && maxLaps > 0) {
-                if (accessoryId === 15) accessoryId = 0;
-                else accessoryId++;
-                maxLaps--;
+                if (accessoryId === 15) accessoryId = 0
+                else accessoryId++
+                maxLaps--
             }
-            accessoryIds.push(accessoryId);
-            config.accessories[accessoryIndex].accessoryId = accessoryId;
-            validatedAccessories[accessoryId] = config.accessories[accessoryIndex];
+            accessoryIds.push(accessoryId)
+            config.accessories[accessoryIndex].accessoryId = accessoryId
+            validatedAccessories[accessoryId] = config.accessories[accessoryIndex]
         }
     }
 
-    config.accessories = validatedAccessories;
+    config.accessories = validatedAccessories
 
-    return config;
-};
+    return config
+}
 
-NexaSwitchPlatform.prototype.addAccessory = function(accessoryInformation) {
+NexaSwitchPlatform.prototype.addAccessory = function (accessoryInformation) {
 
-    let uuid = UUIDGen.generate(accessoryInformation.accessoryName);
+    let uuid = UUIDGen.generate(accessoryInformation.accessoryName)
     if (this.accessoryRegistered(uuid)) {
-        return;
+        return
     }
 
-    this.log(`Adding accessory '${accessoryInformation.accessoryName}'...`);
+    this.log(`Adding accessory '${accessoryInformation.accessoryName}'...`)
 
-    const accessory = new PlatformAccessory(accessoryInformation.accessoryName, uuid);
+    const accessory = new PlatformAccessory(accessoryInformation.accessoryName, uuid)
 
-    accessory.context.name = accessoryInformation.accessoryName;
-    accessory.context.accessoryId = accessoryInformation.accessoryId;
+    accessory.context.name = accessoryInformation.accessoryName
+    accessory.context.accessoryId = accessoryInformation.accessoryId
 
-    accessory.context.manufacturer = (accessoryInformation.manufacturer != null) ? accessoryInformation.manufacturer : 'N/A';
-    accessory.context.model = (accessoryInformation.model != null) ? accessoryInformation.model : 'N/A';
-    accessory.context.serialNumber = (accessoryInformation.serialNumber != null) ? accessoryInformation.serialNumber : 'N/A';
+    accessory.context.manufacturer = (accessoryInformation.manufacturer != null) ? accessoryInformation.manufacturer : "N/A"
+    accessory.context.model = (accessoryInformation.model != null) ? accessoryInformation.model : "N/A"
+    accessory.context.serialNumber = (accessoryInformation.serialNumber != null) ? accessoryInformation.serialNumber : "N/A"
 
     accessory.getService(Service.AccessoryInformation)
         .setCharacteristic(Characteristic.Manufacturer, accessory.context.manufacturer)
         .setCharacteristic(Characteristic.Model, accessory.context.model)
-        .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber);
+        .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber)
 
-    const switchService = accessory.addService(Service.Switch, accessoryInformation.accessoryName);
-    switchService.getCharacteristic(Characteristic.On)
-        .on("set", this.setSwitchOnCharacteristic.bind({
-            operationSequencer: this.operationSequencer,
-            accessoryId: accessoryInformation.accessoryId
-        }));
-
-    this.accessoriesToBeRegistered.push(accessory);
-};
-
-NexaSwitchPlatform.prototype.configureAccessory = function(accessory) {
-
-    this.log(`Restoring accessory '${accessory.context.name}'...`);
-
-    const accessoryInformation = this.config.accessories.find(element => {
-        return (element != null) ? element.accessoryName === accessory.context.name : false
-    });
-
-    if (accessoryInformation != null) {
-        accessory.context.name = accessoryInformation.accessoryName;
-        accessory.context.accessoryId = accessoryInformation.accessoryId;
-
-        accessory.context.manufacturer = (accessoryInformation.manufacturer != null) ? accessoryInformation.manufacturer : 'N/A';
-        accessory.context.model = (accessoryInformation.model != null) ? accessoryInformation.model : 'N/A';
-        accessory.context.serialNumber = (accessoryInformation.serialNumber != null) ? accessoryInformation.serialNumber : 'N/A';
-    }
-
-    accessory.getService(Service.AccessoryInformation)
-        .setCharacteristic(Characteristic.Manufacturer, accessory.context.manufacturer)
-        .setCharacteristic(Characteristic.Model, accessory.context.model)
-        .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber);
-
-    const switchService = accessory.getService(Service.Switch);
+    const switchService = accessory.addService(Service.Switch, accessoryInformation.accessoryName)
     switchService.getCharacteristic(Characteristic.On)
         .on("set", this.setSwitchOnCharacteristic.bind({
             operationSequencer: this.operationSequencer,
             accessoryId: accessory.context.accessoryId
-        }));
+        }))
+        .getValue(function (error, value) {
+            if (error != null) throw error
+            if (value != null) {
+                this.stateMonitor.find(element => element.accessoryId === this.accessoryId).state = !!value
+            }
+        }.bind({
+            stateMonitor: this.stateMonitor,
+            accessoryId: accessory.context.accessoryId
+        }))
 
-    this.accessories.push(accessory);
-};
+    this.accessoriesToBeRegistered.push(accessory)
+}
 
-NexaSwitchPlatform.prototype.accessoryRegistered = function(uuid) {
+NexaSwitchPlatform.prototype.configureAccessory = function (accessory) {
+
+    this.log(`Restoring accessory '${accessory.context.name}'...`)
+
+    const accessoryInformation = this.config.accessories.find(element => {
+        return (element != null) ? element.accessoryName === accessory.context.name : false
+    })
+
+    if (accessoryInformation != null) {
+        accessory.context.name = accessoryInformation.accessoryName
+        accessory.context.accessoryId = accessoryInformation.accessoryId
+
+        accessory.context.manufacturer = (accessoryInformation.manufacturer != null) ? accessoryInformation.manufacturer : "N/A"
+        accessory.context.model = (accessoryInformation.model != null) ? accessoryInformation.model : "N/A"
+        accessory.context.serialNumber = (accessoryInformation.serialNumber != null) ? accessoryInformation.serialNumber : "N/A"
+    }
+
+    accessory.getService(Service.AccessoryInformation)
+        .setCharacteristic(Characteristic.Manufacturer, accessory.context.manufacturer)
+        .setCharacteristic(Characteristic.Model, accessory.context.model)
+        .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber)
+
+    const switchService = accessory.getService(Service.Switch)
+    switchService.getCharacteristic(Characteristic.On)
+        .on("set", this.setSwitchOnCharacteristic.bind({
+            operationSequencer: this.operationSequencer,
+            accessoryId: accessory.context.accessoryId
+        }))
+        .getValue(function (error, value) {
+            if (error != null) throw error
+            if (value != null) {
+                try {
+                    this.stateMonitor.find(element => element.accessoryId === this.accessoryId).state = !!value
+                } catch (error) {
+                    if (error instanceof TypeError) return
+                }
+            }
+        }.bind({
+            stateMonitor: this.stateMonitor,
+            accessoryId: accessory.context.accessoryId
+        }))
+
+    this.accessories.push(accessory)
+}
+
+NexaSwitchPlatform.prototype.accessoryRegistered = function (uuid) {
 
     for (let index in this.accessoriesToBeUnregistered) {
         if (this.accessoriesToBeUnregistered[index].UUID === uuid) {
-            this.accessoriesToBeUnregistered.splice(index, 1);
-            return true;
+            this.accessoriesToBeUnregistered.splice(index, 1)
+            return true
         }
     }
-    return false;
-};
+    return false
+}
 
-NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function(on, next) {
+NexaSwitchPlatform.prototype.setSwitchOnCharacteristic = function (on, next) {
 
-    const state = !!on;
-    this.operationSequencer.sendOp(this.accessoryId, state);
-    this.stateMonitor.find(element => element.accessoryId === this.accessoryId).state = state;
-    return next();
-};
+    const state = !!on
+    this.operationSequencer.sendOp({accessoryId: this.accessoryId, state: state})
+    return next()
+}
 
-NexaSwitchPlatform.prototype.optimizeOperation = function(queue) {
+NexaSwitchPlatform.prototype.optimizeOperation = function (queue) {
 
-    const deltaState = this.stateMonitor.slice(0);
-    for (let operation of queue) this.stateMonitor.find(element => element.accessoryId === operation.accessoryId).state = operation.state;
-
-    this.log(`State ${this.stateMonitor.toString()}, DeltaState: ${deltaState.toString()}`);
-
-    const changed = [];
-    const unchanged = [];
-
-    for (let index in deltaState) {
-        if (this.stateMonitor[index].state !== deltaState[index].state) changed.push(deltaState[index]);
-        else unchanged.push(deltaState[index]);
+    const queueToDeltaState = function (state, queue) {
+        const deltaState = state.map(element => Object.assign({}, element))
+        for (let operation of queue) {
+            deltaState.find(element => element.accessoryId === operation.accessoryId).state = operation.state
+        }
+        return deltaState
     }
 
-    this.log(`Changed: ${changed.toString()}, Unhanged: ${unchanged.toString()}`);
-
-    if (changed.length <= 2) return this.manufactureArguments(changed);
-
-    let stateZero;
-
-    if (unchanged.length !== 0) {
-        stateZero = unchanged[0].state;
-        for (let stateObject of unchanged) if (stateObject.state !== stateZero) stateZero = null;
-    } else {
-        stateZero = true;
+    const separateAltered = function (state, deltaState) {
+        const altered = []
+        const unaltered = []
+        for (let index in deltaState) {
+            if (state[index].state !== deltaState[index].state) altered.push(deltaState[index])
+            else unaltered.push(deltaState[index])
+        }
+        return [altered, unaltered]
     }
 
-    const changedFiltered = changed.filter(state => state === stateZero);
-    const changedFilteredInverted = changed.filter(state => state !== stateZero);
-    console.log(`ChangedFiltered: '${changedFiltered.toString()}'`);
-    console.log(`ChangedFiltered: '${changedFilteredInverted.toString()}'`);
+    const determineUnionUnalteredState = function (unaltered) {
+        if (unaltered.length !== 0) {
+            let unionUnalteredState = unaltered[0].state
+            for (let stateObject of unaltered) if (stateObject.state !== unionUnalteredState) unionUnalteredState = null
+            return unionUnalteredState
+        } else {
+            return true
+        }
+    }
 
-    const quota = changedFiltered.length / changed.length;
-    console.log(`Quota: ${quota.toFixed(2)}`);
+    const state = this.stateMonitor.map(element => Object.assign({}, element))
+    const deltaState = queueToDeltaState(state, queue)
+    this.stateMonitor = deltaState.map(element => Object.assign({}, element))
+    // this.log('State:');
+    // console.log(state);
+    // this.log('DeltaState:');
+    // console.log(deltaState);
 
-    if (quota === 1) {
-        return changed;
+    let altered, unaltered;
+    [altered, unaltered] = separateAltered(state, deltaState)
+    // this.log('Altered:');
+    // console.log(altered);
+    // this.log('Unaltered:');
+    // console.log(unaltered);
+
+    const unionUnalteredState = determineUnionUnalteredState(unaltered)
+    // this.log(`UnionUnalteredState (null if the unaltered state's aren't union): ${unionUnalteredState}`);
+
+    const inFavour = deltaState.filter(element => element.state === unionUnalteredState)
+    // this.log('InFavour (of group operation to unionUnalteredState):');
+    // console.log(inFavour);
+    const notInFavour = deltaState.filter(element => element.state !== unionUnalteredState)
+    // this.log('NotInFavour (of group operation to unionUnalteredState):');
+    // console.log(notInFavour);
+
+    let quota = (inFavour.length - unaltered.length) / (deltaState.length - unaltered.length)
+    if (quota < 0) quota = 0
+    // this.log(`Quota: ${quota.toFixed(2)}`);
+
+    if (quota === 0) {
+        return altered
     } else if (quota > 0.5) {
-        return changedFilteredInverted.unshift({
-            accessoryId: -1,
-            state: stateZero
-        });
-    } else if (quota === 0.5) {
-        return changedFiltered.unshift({
-            accessoryId: -1,
-            state: !stateZero
-        });
+        // this.log(`Using ${BROADCAST_ID} to perform group operation to unionUnalteredState: '${unionUnalteredState}'`);
+        notInFavour.unshift({
+            accessoryId: BROADCAST_ID,
+            state: unionUnalteredState
+        })
+        return notInFavour
     } else {
-        return changedFiltered.unshift({
-            accessoryId: -1,
-            state: !stateZero
-        });
+        // this.log(`Using ${BROADCAST_ID} to perform group operation to !unionUnalteredState: '${!unionUnalteredState}'`);
+        inFavour.unshift({
+            accessoryId: BROADCAST_ID,
+            state: !unionUnalteredState
+        })
+        return inFavour
     }
-};
+}
 
-NexaSwitchPlatform.prototype.manufactureArguments = function(queue) {
-    const argArray = [];
+NexaSwitchPlatform.prototype.manufactureArguments = function (queue) {
+    const argArray = []
     for (let queueObject of queue) {
-        argArray.push(queueObject.accessoryId, (queueObject.state) ? 'on' : 'off');
+        argArray.push(queueObject.accessoryId, (queueObject.state) ? "on" : "off")
     }
-    return argArray;
-};
+    return argArray
+}

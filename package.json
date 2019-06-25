@@ -2,29 +2,32 @@
   "name": "homebridge-nexa-switch-platform",
   "version": "2.0.4",
   "description": "This is a Homebridge plugin for controlling remote controlled power switches manufactured by Nexa.",
-  "main": "index.js",
-  "scripts": {
-    "test": "DEBUG=* ./node_modules/homebridge/bin/homebridge -D -U ./.homebridge -P ./"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/DanielGiljam/nexa-switch-homebridge-plugin.git"
-  },
   "keywords": [
     "homebridge-plugin"
   ],
-  "author": "Daniel Giljam",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/DanielGiljam/nexa-switch-homebridge-plugin/issues"
-  },
   "homepage": "https://github.com/DanielGiljam/nexa-switch-homebridge-plugin#readme",
-  "engines": {
-    "node": ">=0.12.0",
-    "homebridge": ">=0.2.0"
+  "bugs": "https://github.com/DanielGiljam/nexa-switch-homebridge-plugin/issues",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Daniel Giljam",
+    "url": "http://people.arcada.fi/~giljamda"
+  },
+  "main": "index.js",
+  "repository": "github:DanielGiljam/homebridge-nexa-switch-platform",
+  "scripts": {
+    "test": "DEBUG=* ./node_modules/homebridge/bin/homebridge -D -U ./.homebridge -P ./"
   },
   "devDependencies": {
-    "hap-nodejs": "^0.4.51",
-    "homebridge": "^0.4.49"
-  }
+    "homebridge": "^0.4.50"
+  },
+  "engines": {
+    "node": "^12.4.0",
+    "homebridge": "^0.4.50"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm"
+  ]
 }

@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# if [[ -z $(which piHomeEasy) ]]
-# then
-#   echo "Could not find 'piHomeEasy' installed on the system."
-#   exit 1
-# fi
+if [[ -z $(which piHomeEasy) ]]
+then
+  echo "Could not find 'piHomeEasy' installed on the system."
+  exit 1
+fi
 
 readonly HELP="This script is a wrapper around the 'piHomeEasy' -command,
 and allows for queuing up multiple 'piHomeEasy' -operations in one single command.
@@ -53,7 +53,7 @@ emitter_id_is_valid() {
 }
 
 accessory_is_valid() {
-  if [[ -n $1 ]] && [[ $1 -ge 0 ]] && [[ $1 -le 15 ]]; then return 0
+  if [[ -n $1 ]] && [[ $1 -ge -1 ]] && [[ $1 -le 15 ]]; then return 0
   else return 1
   fi
 }
@@ -64,12 +64,12 @@ state_is_valid() {
   fi
 }
 
-readonly TRANSMITTER_PIN=$2
-readonly EMITTER_ID=$3
+readonly TRANSMITTER_PIN=$1
+readonly EMITTER_ID=$2
 
-shift 3
+shift 2
 
-if ! transmitter_pin_is_valid $TRANSMITTER_PIN || ! emitter_id_is_valid $EMITTER_ID
+if ! transmitter_pin_is_valid ${TRANSMITTER_PIN} || ! emitter_id_is_valid ${EMITTER_ID}
 then
   echo "The first two arguments which should be 'transmitter pin' and 'emitter ID' where incorrectly provided. Use option -h or --help for more information."
   exit 1
@@ -89,7 +89,7 @@ done
 while [[ $1 ]]
 do
 
-  echo "piHomeEasy $TRANSMITTER_PIN $EMITTER_ID $1 $2"
+  piHomeEasy ${TRANSMITTER_PIN} ${EMITTER_ID} $1 $2
   shift 2
 done
 
