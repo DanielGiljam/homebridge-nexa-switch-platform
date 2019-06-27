@@ -87,7 +87,7 @@ function NexaSwitchPlatform(log, config, api) {
         }).catch(error => {
             throw error
         })
-    }, log)
+    }, this.config.sequenceTimeout, log)
 
     api.on("didFinishLaunching", () => {
         this.accessoriesToBeUnregistered = this.accessories
@@ -150,10 +150,13 @@ NexaSwitchPlatform.prototype.validateConfig = function (config) {
     // emitterId: must be a number, min. 1, max. 67108862
     if (!validateNumber(config.emitterId, 1, 67108862)) invalidProperties.push("emitterId")
 
+    // sequenceTimeout: must be a number (represents milliseconds), min. 1
+    if (!validateNumber(config.sequenceTimeout, 1, Infinity)) invalidProperties.push("sequenceTimeout")
+
     if (invalidProperties.length !== 0) {
-        const fallbackConfig = JSON.parse(`${fs.readFileSync(/* CHANGE TO THIS BEFORE PRODUCTION: './../homebridge-nexa-switch-platform/miscellaneous/fallback-config.json' */"./miscellaneous/fallback-config.json")}`)
+        const fallbackConfig = JSON.parse(`${fs.readFileSync("./../homebridge-nexa-switch-platform/miscellaneous/fallback-config.json")}`)
         for (let propertyName of invalidProperties) {
-            this.log.error(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`)
+            if (config[propertyName] != null) this.log.error(`Could not read property '${propertyName}'. Assigning default value: ${fallbackConfig[propertyName]}.`)
             config[propertyName] = fallbackConfig[propertyName]
         }
     }
@@ -384,43 +387,29 @@ NexaSwitchPlatform.prototype.optimizeOperation = function (queue) {
     const state = this.stateMonitor.map(element => Object.assign({}, element))
     const deltaState = queueToDeltaState(state, queue)
     this.stateMonitor = deltaState.map(element => Object.assign({}, element))
-    // this.log('State:');
-    // console.log(state);
-    // this.log('DeltaState:');
-    // console.log(deltaState);
 
     let altered, unaltered;
     [altered, unaltered] = separateAltered(state, deltaState)
-    // this.log('Altered:');
-    // console.log(altered);
-    // this.log('Unaltered:');
-    // console.log(unaltered);
 
     const unionUnalteredState = determineUnionUnalteredState(unaltered)
-    // this.log(`UnionUnalteredState (null if the unaltered state's aren't union): ${unionUnalteredState}`);
 
     const inFavour = deltaState.filter(element => element.state === unionUnalteredState)
-    // this.log('InFavour (of group operation to unionUnalteredState):');
-    // console.log(inFavour);
     const notInFavour = deltaState.filter(element => element.state !== unionUnalteredState)
-    // this.log('NotInFavour (of group operation to unionUnalteredState):');
-    // console.log(notInFavour);
 
-    let quota = (inFavour.length - unaltered.length) / (deltaState.length - unaltered.length)
+    let quota = (deltaState.length - unaltered.length === 0) ? null : (inFavour.length - unaltered.length) / (deltaState.length - unaltered.length)
     if (quota < 0) quota = 0
-    // this.log(`Quota: ${quota.toFixed(2)}`);
 
-    if (quota === 0) {
+    if (quota === null) {
+        return []
+    } else if (quota === 0) {
         return altered
     } else if (quota > 0.5) {
-        // this.log(`Using ${BROADCAST_ID} to perform group operation to unionUnalteredState: '${unionUnalteredState}'`);
         notInFavour.unshift({
             accessoryId: BROADCAST_ID,
             state: unionUnalteredState
         })
         return notInFavour
     } else {
-        // this.log(`Using ${BROADCAST_ID} to perform group operation to !unionUnalteredState: '${!unionUnalteredState}'`);
         inFavour.unshift({
             accessoryId: BROADCAST_ID,
             state: !unionUnalteredState

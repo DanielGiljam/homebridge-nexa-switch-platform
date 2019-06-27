@@ -18,8 +18,6 @@ limitations under the License.
 
 "use strict"
 
-const SEQUENCE_TIMEOUT = 2
-
 class OperationSequencer {
 
     /**
@@ -31,13 +29,15 @@ class OperationSequencer {
 
     /**
      * @param {Operation} operation
+     * @param {number} sequenceTimeout
      * @param {?} log
      */
-    constructor(operation, log) {
+    constructor(operation, sequenceTimeout, log) {
         this.operation = operation
+        this.sequenceTimeout = sequenceTimeout
         this.log = log
         this.opQueue = []
-        this.referenceTimer = new ReferenceTimer({timeoutMonitor: true})
+        this.referenceTimer = new ReferenceTimer({timeoutMonitor: true, sequenceTimeout: this.sequenceTimeout})
         this.execSwitch = false
     }
 
@@ -53,7 +53,7 @@ class OperationSequencer {
         try {
             this.sequenceTimer.refresh()
         } catch (error) {
-            if (error instanceof TypeError) this.sequenceTimer = setTimeout(this.executeSequence.bind(this), SEQUENCE_TIMEOUT)
+            if (error instanceof TypeError) this.sequenceTimer = setTimeout(this.executeSequence.bind(this), this.sequenceTimeout)
         }
         this.referenceTimer.reset()
     }
@@ -84,6 +84,7 @@ class ReferenceTimer {
     constructor() {
         this.startTime = Date.now()
         this.timeoutMonitor = (arguments[0] != null && arguments[0].timeoutMonitor != null) ? arguments[0].timeoutMonitor : false
+        if (this.timeoutMonitor) this.sequenceTimeout = (arguments[0] != null && arguments[0].sequenceTimeout != null) ? arguments[0].sequenceTimeout : Infinity
         this.timeoutIdle = true
     }
 
@@ -91,7 +92,7 @@ class ReferenceTimer {
         const time = Date.now() - this.startTime
         if (this.timeoutMonitor) {
             if (this.timeoutIdle) return "inactive (never initialized)"
-            if (time >= SEQUENCE_TIMEOUT) return time + "ms (inactive/complete)"
+            if (time >= this.sequenceTimeout) return time + "ms (inactive/complete)"
             return time + "ms"
         } else return time
     }

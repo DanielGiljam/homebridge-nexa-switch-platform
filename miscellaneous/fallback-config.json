@@ -2,5 +2,6 @@
   "platform": "NexaSwitchPlatform",
   "transmitterPin": 0,
   "emitterId": 31415,
+  "sequenceTimeout": 50,
   "accessoryInformation": []
 }
